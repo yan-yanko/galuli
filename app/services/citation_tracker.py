@@ -325,10 +325,29 @@ class CitationService:
 
     # ── Citation detection ────────────────────────────────────────────────────
 
+    # Phrases that indicate the domain is mentioned as NOT known/cited — false positive patterns
+    NEGATION_PATTERNS = [
+        r"don't have (?:specific )?information about",
+        r"no (?:specific )?information about",
+        r"not (?:familiar|aware) with",
+        r"doesn't appear to be",
+        r"does not appear to be",
+        r"isn't (?:a )?(?:well-known|notable|recognized|listed)",
+        r"is not (?:a )?(?:well-known|notable|recognized|listed)",
+        r"not (?:a )?(?:well-known|notable|recognized)",
+        r"cannot (?:find|verify|confirm)",
+        r"can't (?:find|verify|confirm)",
+        r"not in my (?:training|knowledge)",
+        r"outside (?:my|the scope of my) (?:training|knowledge)",
+        r"i don't (?:have|know)",
+        r"i do not (?:have|know)",
+    ]
+
     def _detect_citation(self, response_text: str, domain: str) -> tuple[bool, Optional[str]]:
         """
-        Check if domain appears in response. Returns (cited, snippet).
-        Checks bare domain, www variant, and name-only (if >5 chars) to reduce false positives.
+        Check if domain appears in response as a positive citation. Returns (cited, snippet).
+        - Checks bare domain, www variant, and name-only (if >5 chars)
+        - Excludes matches where the domain appears in a negation/denial context
         """
         domain_lower = domain.lower().replace("www.", "")
         name_only = domain_lower.rsplit(".", 1)[0]  # 'galuli' from 'galuli.io'
@@ -341,9 +360,23 @@ class CitationService:
         for pattern in patterns:
             m = re.search(pattern, text_lower)
             if m:
-                start = max(0, m.start() - 150)
-                end = min(len(response_text), m.end() + 150)
-                snippet = response_text[start:end].strip()
+                # Extract surrounding context (±200 chars) for negation check
+                start = max(0, m.start() - 200)
+                end = min(len(response_text), m.end() + 200)
+                context = text_lower[start:end]
+
+                # Check if the mention is in a negation/denial context
+                is_negation = any(
+                    re.search(neg, context)
+                    for neg in self.NEGATION_PATTERNS
+                )
+                if is_negation:
+                    return False, None
+
+                # Genuine citation — extract tighter snippet (±150 chars)
+                snip_start = max(0, m.start() - 150)
+                snip_end = min(len(response_text), m.end() + 150)
+                snippet = response_text[snip_start:snip_end].strip()
                 return True, snippet
 
         return False, None
@@ -448,21 +481,16 @@ class CitationService:
     async def _query_claude(self, question: str, domain: str) -> dict:
         """
         Uses Claude's training knowledge — NOT live web.
-        Reframes the question to explicitly ask if the domain is relevant.
+        Asks the question naturally without prompting Claude to mention the domain.
         Results are labeled 'claude' in DB; UI shows 'Claude (training)'.
         """
         try:
             import anthropic
             client = anthropic.Anthropic(api_key=self._settings.anthropic_api_key)
-            reframed = (
-                f"{question}\n\n"
-                f"Please specifically mention {domain} if it is a relevant resource "
-                f"or tool for this topic, based on your training knowledge."
-            )
             msg = client.messages.create(
                 model=self._settings.fast_model,
                 max_tokens=600,
-                messages=[{"role": "user", "content": reframed}],
+                messages=[{"role": "user", "content": question}],
             )
             text = msg.content[0].text
             cited, snippet = self._detect_citation(text, domain)
