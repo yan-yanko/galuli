@@ -2868,11 +2868,10 @@ function CitationTrackerPage() {
   }, [])
 
   useEffect(() => {
-    if (!selected || !me) return
-    const plan = me?.plan || 'free'
-    if (!['pro', 'agency', 'enterprise'].includes(plan)) return
+    if (!selected) return
+    // isPro = true during testing, so always load regardless of me/plan
     loadData(selected)
-  }, [selected, me])
+  }, [selected])
 
   const loadData = (domain) => {
     setLoading(true)
@@ -2950,18 +2949,6 @@ function CitationTrackerPage() {
   const TREND_ICON = { up: '↑', down: '↓', same: '→', insufficient_data: '—' }
   const TREND_COLOR = { up: 'var(--green)', down: 'var(--red)', same: 'var(--muted)', insufficient_data: 'var(--muted)' }
   const ENGINE_LABELS = { perplexity: 'Perplexity', openai: 'ChatGPT', claude: 'Claude (training)' }
-
-  // ── Loading state ──
-  if (meLoading) {
-    return (
-      <div className="flex col gap-24">
-        <PageHeader title="Citation Tracker" subtitle="Track whether AI engines cite your site" />
-        <div className="flex center gap-12" style={{ padding: 48, color: 'var(--muted)' }}>
-          <span className="spinner" /> Loading…
-        </div>
-      </div>
-    )
-  }
 
   const plan = me?.plan || 'free'
   const isPro = true // TODO: restore after testing — ['pro', 'agency', 'enterprise'].includes(plan)
