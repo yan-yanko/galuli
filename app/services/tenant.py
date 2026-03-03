@@ -414,6 +414,13 @@ class TenantService:
             """, (plan, limits["domains"], limits["rate_per_min"], api_key))
             conn.commit()
 
+    def reset_daily_usage(self):
+        """Reset requests_today to 0 for all tenants. Called by the nightly scheduler."""
+        with self._get_conn() as conn:
+            conn.execute("UPDATE tenants SET requests_today = 0")
+            conn.commit()
+        logger.info("Daily usage counters reset for all tenants")
+
     def _row_to_tenant(self, row: dict) -> Tenant:
         row["is_active"] = bool(row.get("is_active", 1))
         row["js_enabled"] = bool(row.get("js_enabled", 0))

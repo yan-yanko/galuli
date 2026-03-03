@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
 
 from app.services.storage import StorageService
@@ -65,8 +65,20 @@ async def delete_registry(domain: str):
 
 
 @router.delete("/wipe-all", summary="Wipe all registries and jobs from the database")
-async def wipe_all():
-    """Delete every registry, ingest job, crawl schedule, and page hash from the DB."""
+async def wipe_all(request: Request):
+    """
+    Delete every registry, ingest job, crawl schedule, and page hash from the DB.
+    Requires the master REGISTRY_API_KEY header when auth is enabled.
+    """
+    from app.config import settings
+    if settings.registry_api_key:
+        api_key = request.headers.get("X-API-Key", "")
+        if api_key != settings.registry_api_key:
+            raise HTTPException(
+                status_code=403,
+                detail="Master key required. Set X-API-Key header with your REGISTRY_API_KEY.",
+            )
+
     tables = ["registries", "ingest_jobs", "crawl_schedule", "page_hashes"]
     with storage._get_conn() as conn:
         for table in tables:

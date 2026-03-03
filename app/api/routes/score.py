@@ -255,6 +255,27 @@ async def get_score(domain: str):
     return {"domain": domain, **score}
 
 
+@router.get("/{domain}/suggestions", summary="Improvement suggestions for AI Readiness Score")
+async def get_suggestions(domain: str):
+    """
+    Prioritized list of actions to improve the AI Readiness Score.
+    Same suggestions already embedded in the GET /{domain} response.
+    Provided as a separate endpoint for dashboard convenience.
+    """
+    domain = domain.replace("www.", "").lower().strip()
+    storage = StorageService()
+    registry = storage.get_registry(domain)
+    if not registry:
+        raise HTTPException(status_code=404, detail=f"No registry for '{domain}'")
+    score = _compute_score(registry)
+    return {
+        "domain": domain,
+        "score": score["total"],
+        "grade": score["grade"],
+        "suggestions": score["suggestions"],
+    }
+
+
 @router.get("/{domain}/badge", summary="Embeddable SVG badge for AI Readiness Score")
 async def get_badge(domain: str):
     """

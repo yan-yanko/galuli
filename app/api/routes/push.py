@@ -1,11 +1,11 @@
 """
-Push ingest — receives structured page data from the galui.js snippet.
+Push ingest — receives structured page data from the galuli.js snippet.
 Replaces crawl-on-demand for sites with the snippet installed.
 
-POST /api/v1/ingest/push   ← called by snippet on every page load
-GET  /api/v1/score/{domain}         ← AI Readiness Score
-GET  /api/v1/score/{domain}/badge   ← embeddable SVG badge
-GET  /api/v1/score/{domain}/suggestions ← improvement suggestions
+POST /api/v1/push          ← called by galuli.js on every page load
+GET  /api/v1/geo/{domain}  ← per-LLM GEO citation readiness score
+
+Score/badge endpoints live in score.py (prefix /api/v1/score).
 """
 import hashlib
 import logging
@@ -17,7 +17,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.services.storage import StorageService
-from app.services.score import calculate_score, generate_suggestions
+from app.services.score import calculate_score
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -246,80 +246,7 @@ def _merge_registries(existing, new):
     return new
 
 
-# ── Score endpoints ───────────────────────────────────────────────────────
-
-@router.get("/score/{domain}", summary="AI Readiness Score")
-async def get_score(domain: str):
-    """Full AI Readiness Score breakdown for a domain."""
-    domain = domain.replace("www.", "").lower().strip()
-    registry = storage.get_registry(domain)
-    if not registry:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No registry for '{domain}'. Install the galuli snippet first."
-        )
-    score = calculate_score(registry.model_dump())
-    suggestions = generate_suggestions(score)
-    return {**score, "suggestions": suggestions}
-
-
-@router.get("/score/{domain}/badge", summary="Embeddable SVG badge")
-async def get_badge(domain: str):
-    """SVG badge for embedding on the website. Shows AI Readiness Score."""
-    domain = domain.replace("www.", "").lower().strip()
-    registry = storage.get_registry(domain)
-
-    if not registry:
-        score_data = {"total": 0, "grade": "?", "label": "Not Indexed", "color": "#6b7280"}
-    else:
-        score_data = calculate_score(registry.model_dump())
-
-    total = score_data["total"]
-    grade = score_data["grade"]
-    label = score_data["label"]
-    color = score_data["color"]
-
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="160" height="28" role="img" aria-label="AI Readiness: {total}/100">
-  <title>AI Readiness: {total}/100</title>
-  <linearGradient id="s" x2="0" y2="100%">
-    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
-    <stop offset="1" stop-opacity=".1"/>
-  </linearGradient>
-  <clipPath id="r">
-    <rect width="160" height="28" rx="4" fill="#fff"/>
-  </clipPath>
-  <g clip-path="url(#r)">
-    <rect width="88" height="28" fill="#1e293b"/>
-    <rect x="88" width="72" height="28" fill="{color}"/>
-    <rect width="160" height="28" fill="url(#s)"/>
-  </g>
-  <g fill="#fff" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="11">
-    <text x="44" y="18" font-weight="600">⬡ AI-Ready</text>
-    <text x="124" y="18" font-weight="700">{grade} · {total}/100</text>
-  </g>
-</svg>"""
-
-    return Response(content=svg, media_type="image/svg+xml", headers={
-        "Cache-Control": "max-age=3600",
-        "Access-Control-Allow-Origin": "*",
-    })
-
-
-@router.get("/score/{domain}/suggestions", summary="Improvement suggestions")
-async def get_suggestions(domain: str):
-    """Prioritized list of actions to improve AI Readiness Score."""
-    domain = domain.replace("www.", "").lower().strip()
-    registry = storage.get_registry(domain)
-    if not registry:
-        raise HTTPException(status_code=404, detail=f"No registry for '{domain}'")
-    score = calculate_score(registry.model_dump())
-    return {
-        "domain": domain,
-        "score": score["total"],
-        "grade": score["grade"],
-        "suggestions": generate_suggestions(score),
-    }
-
+# ── GEO endpoint ──────────────────────────────────────────────────────────
 
 @router.get("/geo/{domain}", summary="GEO (Generative Engine Optimization) Score")
 async def get_geo_score(domain: str):

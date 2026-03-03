@@ -7,7 +7,7 @@ Default: every 7 days per domain (configurable).
 Integrated into FastAPI lifespan — starts on app boot, stops on shutdown.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,17 @@ def start_scheduler():
             replace_existing=True,
             next_run_time=datetime.utcnow() + timedelta(hours=1),  # First run 1h after boot
         )
+        from apscheduler.triggers.cron import CronTrigger
+        _scheduler.add_job(
+            _reset_daily_usage,
+            trigger=CronTrigger(hour=0, minute=0, timezone="UTC"),  # Daily at midnight UTC
+            id="reset_daily_usage",
+            replace_existing=True,
+        )
         _scheduler.start()
         logger.info("Auto-refresh scheduler started (checks every 6h, re-crawls if >7d stale)")
         logger.info("Citation check scheduler started (weekly, Pro tenants)")
+        logger.info("Daily usage reset scheduler started (midnight UTC)")
     except ImportError:
         logger.warning("APScheduler not installed — auto-refresh disabled. pip install apscheduler")
     except Exception as e:
@@ -144,6 +152,18 @@ async def _refresh_one(domain: str, storage, settings):
         job.completed_at = datetime.utcnow()
         storage.save_job(job)
         raise
+
+
+def _reset_daily_usage():
+    """
+    Midnight UTC: reset requests_today = 0 for all tenants.
+    Ensures daily rate limits actually reset each day.
+    """
+    from app.services.tenant import TenantService
+    try:
+        TenantService().reset_daily_usage()
+    except Exception as e:
+        logger.error(f"Daily usage reset job error: {e}", exc_info=True)
 
 
 def _run_citation_checks():

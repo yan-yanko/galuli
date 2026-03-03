@@ -1,6 +1,6 @@
 # Galuli — Claude Session Memory
 
-> Last updated: 2026-02-28
+> Last updated: 2026-03-03
 
 ---
 
@@ -43,6 +43,15 @@ It provides a GEO (Generative Engine Optimization) score, Content Doctor fixes, 
 - All non-API paths → SPA fallback (React Router handles)
 - Multi-tenant: each user has an API key stored in `tenants` table
 
+### Two SQLite Databases
+The system uses **two separate SQLite files**:
+| File | Path (env var) | Contents |
+|---|---|---|
+| Main DB | `data/registry.db` (`DATABASE_URL`) | registries, ingest_jobs, crawl_schedule, page_hashes, tenants, usage_log, tenant_domains, magic_tokens, analytics_events |
+| Citations DB | `data/citations.db` (hardcoded in `CitationService`) | citation_queries, citation_results |
+
+Both files are created automatically on first boot. If you mount a Railway volume, make sure **both paths** live on it (the default `data/` dir covers both).
+
 ### Key Files
 ```
 galuli/
@@ -50,11 +59,12 @@ galuli/
 │   ├── api/
 │   │   ├── main.py           ← FastAPI app, SPA serving, health check
 │   │   ├── routes/
-│   │   │   ├── admin.py      ← DELETE /api/v1/admin/wipe-all
+│   │   │   ├── admin.py      ← DELETE /api/v1/admin/wipe-all (requires master key in prod)
 │   │   │   ├── billing.py    ← LS webhook POST /api/v1/billing/ls-webhook
-│   │   │   ├── push.py       ← ingest endpoint
-│   │   │   ├── analytics.py
-│   │   │   └── score.py
+│   │   │   ├── push.py       ← POST /api/v1/push (galuli.js) + GET /api/v1/geo/{domain}
+│   │   │   ├── score.py      ← GET /api/v1/score/{domain} + /badge + /suggestions
+│   │   │   ├── citations.py  ← Citation Tracker (Pro only)
+│   │   │   └── analytics.py
 │   │   └── auth.py
 │   ├── services/
 │   │   ├── storage.py        ← SQLite wrapper
