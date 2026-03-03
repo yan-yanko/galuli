@@ -45,7 +45,10 @@ PUBLIC_POST_EXACT = {
     "/api/v1/auth/signup",
     "/api/v1/auth/login",
     "/api/v1/auth/magic-link",
-    "/api/v1/billing/webhook",   # Stripe sends no auth header
+    "/api/v1/billing/webhook",      # Stripe sends no auth header
+    "/api/v1/billing/ls-webhook",   # Lemon Squeezy sends no auth header
+    "/api/v1/push",                 # galuli.js snippet — auth via payload.tenant_key
+    "/api/v1/analytics/event",      # galuli.js analytics — no auth needed (fire-and-forget)
 }
 PUBLIC_GET_EXACT = {
     "/api/v1/auth/magic-verify",

@@ -12,8 +12,7 @@ var _autoBase = window.location.hostname === "localhost"
   ? "http://localhost:8000"
   : window.location.origin
 
-var DEFAULT_KEY = "kotleryan1984"
-function getKey() { return localStorage.getItem("galuli_api_key") || DEFAULT_KEY }
+function getKey() { return localStorage.getItem("galuli_api_key") || "" }
 function getBase() { return localStorage.getItem("galuli_api_url") || _autoBase }
 
 async function req(path, options) {

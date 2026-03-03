@@ -2153,8 +2153,10 @@ function TenantsPage() {
               <label className="label">Plan</label>
               <select value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}>
                 <option value="free">Free — 3 sites, 10 req/min</option>
-                <option value="pro">Pro — 50 sites, 60 req/min</option>
-                <option value="enterprise">Enterprise — unlimited</option>
+                <option value="starter">Starter — 1 site, 30 req/min</option>
+                <option value="pro">Pro — 10 sites, 60 req/min</option>
+                <option value="agency">Agency — unlimited sites, 300 req/min</option>
+                <option value="enterprise">Enterprise — unlimited sites, 300 req/min</option>
               </select>
             </div>
             <button className="btn btn-primary" disabled={loading}>
@@ -2250,10 +2252,10 @@ function UpgradeCTAs({ plan, email }) {
         <div style={{ background: 'linear-gradient(135deg, var(--accent)12, var(--accent2)12)', border: '1px solid var(--accent)30', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-              Starter — {isAnnual ? '$90/yr' : '$9/mo'}
-              {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>2 months free</span>}
+              Starter — {isAnnual ? '$79/yr' : '$9/mo'}
+              {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>Save ~27%</span>}
             </div>
-            <div style={{ fontSize: 14, color: 'var(--muted)' }}>10 sites · AI traffic tracking · GEO score · Content Doctor</div>
+            <div style={{ fontSize: 14, color: 'var(--muted)' }}>1 site · AI traffic tracking · GEO score · Content Doctor</div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => openCheckout(isAnnual ? 'starter_annual' : 'starter', email)}>
             Upgrade to Starter →
@@ -2265,10 +2267,10 @@ function UpgradeCTAs({ plan, email }) {
       <div style={{ background: 'linear-gradient(135deg, var(--purple)10, var(--accent)10)', border: '1px solid var(--purple)30', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-            Pro — {isAnnual ? '$290/yr' : '$29/mo'}
-            {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>2 months free</span>}
+            Pro — {isAnnual ? '$249/yr' : '$29/mo'}
+            {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>Save ~28%</span>}
           </div>
-          <div style={{ fontSize: 14, color: 'var(--muted)' }}>Unlimited sites · priority crawls · full API access · advanced analytics</div>
+          <div style={{ fontSize: 14, color: 'var(--muted)' }}>10 sites · priority crawls · daily rescan · Citation Tracker</div>
         </div>
         <button className="btn btn-primary btn-sm" style={{ background: 'var(--purple)' }} onClick={() => openCheckout(isAnnual ? 'pro_annual' : 'pro', email)}>
           Upgrade to Pro →
@@ -2305,10 +2307,11 @@ function SettingsPage({ setPage }) {
   const activeKey = localStorage.getItem('galuli_api_key') || ''
 
   const PLAN_DETAILS = {
-    free:       { label: 'Free',       color: 'var(--muted)',   price: '$0/mo',   sites: '3 sites',       rate: '10 req/min' },
-    starter:    { label: 'Starter',    color: 'var(--green)',   price: '$9/mo',   sites: '10 sites',      rate: '30 req/min' },
-    pro:        { label: 'Pro',        color: 'var(--accent2)', price: '$29/mo',  sites: 'Unlimited',     rate: '120 req/min' },
-    enterprise: { label: 'Enterprise', color: 'var(--blue)',    price: 'Custom',  sites: 'Unlimited',     rate: '300 req/min' },
+    free:       { label: 'Free',       color: 'var(--muted)',   price: '$0/mo',   sites: '3 sites',    rate: '10 req/min' },
+    starter:    { label: 'Starter',    color: 'var(--green)',   price: '$9/mo',   sites: '1 site',     rate: '30 req/min' },
+    pro:        { label: 'Pro',        color: 'var(--accent2)', price: '$29/mo',  sites: '10 sites',   rate: '60 req/min' },
+    agency:     { label: 'Agency',     color: 'var(--blue)',    price: '$799/yr', sites: 'Unlimited',  rate: '300 req/min' },
+    enterprise: { label: 'Enterprise', color: 'var(--blue)',    price: 'Custom',  sites: 'Unlimited',  rate: '300 req/min' },
   }
 
   const plan = me?.plan || 'free'

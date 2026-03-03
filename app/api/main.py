@@ -85,16 +85,12 @@ from app.api.auth import APIKeyMiddleware
 app.add_middleware(APIKeyMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://galui.lovable.app",
-        "https://*.lovable.app",
-    ],
-    allow_origin_regex=r"https://.*\.lovable\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # "*" is required because galuli.js runs on customer sites (any domain) and
+    # needs to POST analytics events + push data. Credentials are NOT allowed with "*".
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key", "X-Galuli-Key"],
 )
 
 from app.api.routes import ingest, registry, admin, tenants, push, analytics, billing, content_doctor, score, citations

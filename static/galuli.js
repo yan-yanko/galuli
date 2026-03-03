@@ -665,7 +665,7 @@
 
     log('Pushing page data to backend:', pageData.url);
 
-    _fetch(API_BASE + '/api/v1/ingest/push', 'POST', payload, function (res) {
+    _fetch(API_BASE + '/api/v1/push', 'POST', payload, function (res) {
       if (res) {
         if (res.score) log('AI Readiness Score:', res.score.total + '/100 (' + res.score.grade + ')');
         if (res.status === 'accepted') log('Registry update queued');
@@ -763,7 +763,6 @@
 
   // ── Public API (window.galui) ──────────────────────────────────────────────
   window.galuli = {
-  window.galui = window.galuli; // backward-compat alias
     version: '3.1.0',
     domain:  domain,
     getTools: function () { return registeredTools.slice(); },
@@ -777,6 +776,7 @@
       _init();
     },
   };
+  window.galui = window.galuli; // backward-compat alias — existing installs using window.galui still work
 
   log('galuli.js loaded — v3.1.0');
 
