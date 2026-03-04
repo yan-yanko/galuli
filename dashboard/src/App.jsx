@@ -2220,7 +2220,10 @@ const LS_URLS = {
 }
 function openCheckout(plan, email) {
   const base = LS_URLS[plan]
-  if (!base) return
+  if (!base) {
+    toast.info('Annual plans are coming soon — email hello@galuli.io to get early access pricing.')
+    return
+  }
   const url = email ? `${base}?checkout[email]=${encodeURIComponent(email)}` : base
   window.open(url, '_blank', 'noopener')
 }
