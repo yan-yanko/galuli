@@ -77,7 +77,7 @@ app = FastAPI(
         "- `GET /api/v1/analytics/{domain}/agents` — Agent breakdown\n"
         "- `GET /api/v1/analytics/{domain}/pages` — Per-page breakdown\n"
     ),
-    version="3.1.0",
+    version="3.2.0",
     lifespan=lifespan,
 )
 
@@ -125,7 +125,7 @@ async def health():
     return {
         "status": "ok",
         "service": "galuli",
-        "version": "3.1.0",
+        "version": "3.2.0",
         "anthropic_configured": anthropic_ok,
         "auth_enabled": bool(settings.registry_api_key),
         "registries_indexed": len(registries),
@@ -187,11 +187,19 @@ async def sitemap_xml():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         '  <url><loc>https://galuli.io/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n'
         '  <url><loc>https://galuli.io/blog</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>\n'
+        '  <url><loc>https://galuli.io/install</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/webmcp-explained</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/how-to-get-ai-citations</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/ai-readiness-tech-stack-2026</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/blog/what-is-geo</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/blog/llms-txt-guide</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/blog/ai-readiness-score</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/blog/ai-agent-analytics</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/blog/future-of-search</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/ai-attention-score</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/content-doctor</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/robots-txt-ai-crawlers</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://galuli.io/blog/information-gain-geo</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n'
         '  <url><loc>https://galuli.io/pricing</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>\n'
         '  <url><loc>https://galuli.io/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n'
         '  <url><loc>https://galuli.io/roadmap</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n'
@@ -229,17 +237,23 @@ async def llms_txt():
         "- [Home / Free Scan](https://galuli.io/): Scan any URL and get an instant AI Readiness Score\n"
         "- [Dashboard](https://galuli.io/dashboard/): Full analytics, GEO scores, Content Doctor, snippet, registry\n"
         "- [Pricing](https://galuli.io/pricing): Plans and feature comparison\n"
-        "- [About](https://galuli.io/about): Company story, beliefs, full product overview\n\n"
+        "- [About](https://galuli.io/about): Company story, beliefs, full product overview\n"
+        "- [Install Guide](https://galuli.io/install): Step-by-step install guide for WordPress, Webflow, Shopify, Next.js, Lovable, Replit, and more\n\n"
         "## Product Features\n\n"
         "- [AI Readiness Score](https://galuli.io/blog/ai-readiness-score): The 5 dimensions explained\n"
         "- [AI Attention Score](https://galuli.io/blog/ai-attention-score): How AI attention is measured and improved\n"
         "- [Content Doctor](https://galuli.io/blog/content-doctor): Authority gaps + structural optimization for GEO\n"
-        "- [Roadmap](https://galuli.io/roadmap): Public 2025 roadmap with shipped and planned items\n\n"
+        "- [Roadmap](https://galuli.io/roadmap): Public 2026 roadmap with shipped and planned items\n\n"
         "## Blog / Education\n\n"
         "- [What is GEO?](https://galuli.io/blog/what-is-geo): Complete guide to Generative Engine Optimization\n"
         "- [llms.txt Guide](https://galuli.io/blog/llms-txt-guide): Format, examples, common mistakes, full AI-readability stack\n"
         "- [AI Agent Analytics](https://galuli.io/blog/ai-agent-analytics): Track the AI traffic you can't see in Google Analytics\n"
-        "- [Future of Search](https://galuli.io/blog/future-of-search): How AI is rewriting online discovery\n\n"
+        "- [Future of Search](https://galuli.io/blog/future-of-search): How AI is rewriting online discovery\n"
+        "- [robots.txt for AI Crawlers](https://galuli.io/blog/robots-txt-ai-crawlers): Are you accidentally blocking AI search engines?\n"
+        "- [Information Gain for GEO](https://galuli.io/blog/information-gain-geo): Why generic content gets ignored by AI\n"
+        "- [WebMCP Explained](https://galuli.io/blog/webmcp-explained): The standard that makes your website AI-interactive\n"
+        "- [How to Get AI Citations](https://galuli.io/blog/how-to-get-ai-citations): What Perplexity, ChatGPT, and Claude actually cite\n"
+        "- [AI-Readiness Tech Stack 2026](https://galuli.io/blog/ai-readiness-tech-stack-2026): All 5 layers every AI-visible website needs\n\n"
         "## API\n\n"
         "- [API Docs](https://galuli.io/docs): FastAPI interactive documentation\n"
         "- [Registry endpoint](https://galuli.io/registry/{domain}): JSON capability registry for any indexed domain\n"
@@ -257,7 +271,7 @@ async def llms_txt():
 
 # ── Snippet delivery ───────────────────────────────────────────────────────
 
-SNIPPET_VERSION = "3.1.0"
+SNIPPET_VERSION = "3.2.0"
 SNIPPET_RELEASED = "2026-02-25"
 
 @app.get("/galuli.js", tags=["Snippet"], include_in_schema=False)
@@ -328,4 +342,4 @@ else:
 
     @app.get("/", include_in_schema=False)
     async def serve_landing():
-        return {"service": "galuli", "version": "3.1.0", "docs": "/docs", "dashboard": "not built"}
+        return {"service": "galuli", "version": "3.2.0", "docs": "/docs", "dashboard": "not built"}

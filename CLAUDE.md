@@ -1,6 +1,6 @@
 # Galuli — Claude Session Memory
 
-> Last updated: 2026-03-03
+> Last updated: 2026-03-04
 
 ---
 
@@ -91,7 +91,15 @@ galuli/
 │   └── config.py                ← Pydantic settings (all env vars)
 ├── dashboard/
 │   └── src/
-│       ├── App.jsx              ← ENTIRE frontend (~2600 lines, one file)
+│       ├── main.jsx             ← Root router (path-based, no react-router)
+│       ├── App.jsx              ← Dashboard SPA (~2600 lines, one file)
+│       ├── Landing.jsx          ← LandingPage + ResultsPage (root /)
+│       ├── Blog.jsx             ← BlogListPage + BlogPostPage + POSTS array (12 posts)
+│       ├── About.jsx            ← AboutPage (/about)
+│       ├── Roadmap.jsx          ← RoadmapPage (/roadmap)
+│       ├── Pricing.jsx          ← PricingPage (/pricing)
+│       ├── InstallGuide.jsx     ← InstallGuidePage (/install) — 12 platforms, FAQ
+│       ├── AuthModal.jsx        ← Magic link / email auth modal
 │       ├── api.js               ← fetch wrapper + all API calls
 │       ├── index.css            ← design system / global styles (Linear-inspired)
 │       └── App.css
@@ -101,6 +109,52 @@ galuli/
 ├── .env.example
 └── CLAUDE.md                    ← this file
 ```
+
+### Frontend Routing (main.jsx — path-based, no react-router)
+
+All routes are matched in `main.jsx` via `window.location.pathname`. No react-router dependency.
+
+| Path | Component | Notes |
+|---|---|---|
+| `/dashboard/*` | `<App />` | Full SPA, hash-based sub-routing |
+| `/blog` | `<BlogListPage>` | List of all blog posts |
+| `/blog/[slug]` | `<BlogPostPage>` | Individual post |
+| `/about` | `<AboutPage>` | About, tech stack, pricing overview |
+| `/roadmap` | `<RoadmapPage>` | Product roadmap |
+| `/pricing` | `<PricingPage>` | Pricing tiers, Lemon Squeezy checkout |
+| `/install` | `<InstallGuidePage>` | Platform-specific install guide (12 platforms) |
+| `/` | `<LandingPage>` or `<ResultsPage>` | Root landing / post-scan results |
+| `?token=...` | `<AuthModal initialMode="login">` | Magic link callback |
+
+In-app navigation uses `handleContentNavigate(page, slug)` which updates both React state and `window.history.pushState`.
+
+### InstallGuide.jsx — Supported Platforms
+
+12 platforms with step-by-step guides and difficulty indicators:
+`html` · `wordpress` · `webflow` · `shopify` · `squarespace` · `wix` · `framer` · `nextjs` · `lovable` · `replit` · `react` · `ghost`
+
+Each guide includes: platform name, emoji, difficulty badge (Easy/Medium), numbered steps, copy-ready code snippet, and a verification step. The page also includes a 6-item FAQ section.
+
+### Blog Posts (POSTS array in Blog.jsx — 12 total)
+
+| Slug | Title | Date | Category |
+|---|---|---|---|
+| `webmcp-explained` | WebMCP: The Protocol That Makes Your Website Callable by AI Agents | Mar 3, 2026 | Technical |
+| `how-to-get-ai-citations` | How to Get Your Website Cited by ChatGPT, Perplexity, and Claude | Mar 4, 2026 | Strategy |
+| `ai-readiness-tech-stack-2026` | The Complete AI Readiness Tech Stack for 2026 | Feb 20, 2025 | Technical |
+| `what-is-geo` | What Is GEO (Generative Engine Optimization)? | Feb 18, 2025 | Fundamentals |
+| `llms-txt-guide` | The llms.txt File: What It Is, Why It Matters, and How to Write One | Feb 12, 2025 | Technical |
+| `ai-readiness-score` | The AI Readiness Score: What It Measures and How to Improve It | Feb 5, 2025 | Product |
+| `ai-agent-analytics` | AI Agent Analytics: How to See Who's Crawling Your Website | Jan 28, 2025 | Analytics |
+| `future-of-search` | The Future of Search Is AI — Is Your Website Ready? | Jan 20, 2025 | Industry |
+| `ai-attention-score` | AI Attention Score: The Metric That Predicts Citation Probability | Feb 25, 2025 | Analytics |
+| `content-doctor` | Content Doctor: How Galuli Fixes What AI Systems Can't Read | Feb 27, 2025 | Product |
+| `robots-txt-ai-crawlers` | robots.txt for AI Crawlers: How to Stop Blocking GPTBot, ClaudeBot, and PerplexityBot | Mar 1, 2026 | Technical |
+| `information-gain-geo` | Information Gain: The Research-Backed Key to AI Citations | Mar 1, 2026 | Research |
+
+All posts live in the `POSTS` array in `dashboard/src/Blog.jsx`, newest first.
+
+---
 
 ### Router Mount Order (important — FastAPI uses first match)
 ```python
@@ -551,6 +605,24 @@ Both `data/registry.db` and `data/citations.db` live in the same `/data` volume 
 
 ---
 
+## Change Log (2026-03-02 — 2026-03-04)
+
+### 2026-03-04 — Content & install guide (current session)
+| File | Change |
+|---|---|
+| `static/galuli.js` | v3.2.0: SPA nav (pushState/popstate), data-key attribute, hostname-based script detection, 250ms render delay |
+| `app/api/main.py` | SNIPPET_VERSION 3.1.0 → 3.2.0; sitemap expanded to 17 URLs (added /install + 8 blog slugs); llms.txt updated |
+| `dashboard/src/main.jsx` | Added /install route + InstallGuidePage import |
+| `dashboard/src/InstallGuide.jsx` | NEW — 12-platform install guide with steps, code, FAQ |
+| `dashboard/src/Blog.jsx` | 3 new posts prepended: webmcp-explained, how-to-get-ai-citations, ai-readiness-tech-stack-2026 |
+| `CLAUDE.md` | Comprehensive update: routing table, all 12 blog posts, InstallGuide platforms, v3.2.0 details |
+
+### 2026-03-02 — 2026-03-03 — Security hardening + launch fixes
+
+All critical issues fixed before launch. Committed in two batches:
+- `efb0a7b` — 8 critical/high bugs fixed
+- `a7b73be` — 6 UX/polish fixes
+
 ## Bug Fix Log (2026-03-02 — 2026-03-03)
 
 All critical issues fixed before launch. Committed in two batches:
@@ -583,7 +655,7 @@ All critical issues fixed before launch. Committed in two batches:
 
 ## Pending TODOs
 
-1. **Pro annual variant** — create "$249/yr" variant in Lemon Squeezy, get checkout URL and variant ID
-2. **Starter annual URL** — create "$79/yr" variant in LS, paste URL into `LS_URLS.starter_annual` in `App.jsx`
-3. **Railway env var** — add `LS_VARIANT_PRO_ANNUAL=<id>` once created in LS
-4. **Manual QA** — test galuli.js snippet install end-to-end, LS checkout flow, magic link email
+1. **Pro annual variant** — create "$249/yr" variant in Lemon Squeezy, get checkout URL and variant ID, paste into `LS_URLS.pro_annual` in `App.jsx` and set `LS_VARIANT_PRO_ANNUAL` Railway env var
+2. **Starter annual URL** — create "$79/yr" variant in LS (variant ID 1353121 exists), paste checkout URL into `LS_URLS.starter_annual` in `App.jsx`
+3. **Manual QA** — test galuli.js snippet install end-to-end on each major platform type (HTML, WordPress, Next.js SPA), LS checkout flow, magic link email delivery
+4. **Install guide nav links** — consider adding /install link to the nav in About.jsx, Roadmap.jsx, Blog.jsx navbars (currently only accessible via direct URL or from the dashboard SnippetPage)

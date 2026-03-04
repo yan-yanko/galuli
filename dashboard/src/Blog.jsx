@@ -3,6 +3,230 @@ import { useState } from 'react'
 // ── Blog post data ─────────────────────────────────────────────────────────────
 export const POSTS = [
   {
+    slug: 'webmcp-explained',
+    title: 'WebMCP: The Protocol That Makes Your Website Callable by AI Agents',
+    subtitle: 'A technical introduction to WebMCP — the emerging standard that lets AI agents discover, understand, and interact with your web services without human help.',
+    date: 'March 3, 2026',
+    readTime: '9 min read',
+    category: 'Technical',
+    coverEmoji: '🤖',
+    intro: `The web has always been designed for humans. URLs, HTML, and HTTP were built so browsers could fetch pages and humans could read them. But AI agents don't browse — they call. They need to know: what can this website do, what parameters does it accept, and what will it return? WebMCP is the protocol being built to answer those questions.`,
+    sections: [
+      {
+        heading: 'What WebMCP is',
+        body: `WebMCP — Web Model Context Protocol — is an extension of Anthropic's Model Context Protocol (MCP) for the open web. Where MCP defines how AI agents communicate with local tools (file systems, databases, custom scripts), WebMCP extends that model to publicly accessible web services.
+
+The core idea: a website registers itself as a set of callable "tools" with structured inputs and outputs. An AI agent, encountering your domain in a conversation, can look up your WebMCP registration, discover what you can do, and call your tools directly — no human in the loop, no scraping HTML, no guessing at API behavior.
+
+WebMCP registrations are hosted at /.well-known/ai-plugin.json (an OpenAI-originated standard that WebMCP extends) or served via a dedicated WebMCP discovery endpoint. A registration includes tool definitions (what actions the site can perform), input schemas (what parameters each tool accepts, in JSON Schema format), output schemas (what structure to expect in return), auth requirements, and rate limits.
+
+This is the difference between your website being a "readable document" and being a "callable service." For AI agents that are increasingly taking autonomous actions on behalf of users — booking, purchasing, summarizing, creating — this distinction is enormous.`
+      },
+      {
+        heading: 'Why WebMCP matters for GEO',
+        body: `GEO has historically focused on passive optimization: write better content, add schema markup, publish a llms.txt file. These strategies make your site easier for AI to read. WebMCP is different — it makes your site something AI can actively use.
+
+Consider the difference. Without WebMCP: a user asks ChatGPT to "find the best project management tool." ChatGPT synthesizes an answer from training data and retrieved content. Your site might be mentioned if it appears in that content. With WebMCP: a user asks Claude to "set up a project for my new website and invite my team." Claude discovers your tool's WebMCP registration, calls your project creation endpoint, and returns a confirmation — all without the user ever visiting your website.
+
+This isn't hypothetical. AI agent frameworks like LangChain, AutoGPT, and Claude's own agent mode are actively building WebMCP discovery into their infrastructure. The sites that register early will have a compounding head start in the agentic web.
+
+Princeton's GEO-bench research showed that structured signals — clear citations, statistics, and machine-readable declarations — increase AI citation probability by 30–40%. WebMCP is the most machine-readable declaration you can publish, and currently the least crowded.`
+      },
+      {
+        heading: 'The anatomy of a WebMCP registration',
+        body: `A WebMCP registration (hosted at /.well-known/ai-plugin.json) is a JSON document with a handful of critical fields.
+
+The **name_for_model** field tells the AI how to refer to your service internally — keep it short, lowercase, and underscore-separated. The **description_for_model** is the most important field and consistently the most under-invested: this is what the AI agent reads to decide whether to call your tool. Be specific — name the inputs, name the outputs, name the constraints. Vague descriptions lead to wrong usage or no usage at all.
+
+The **api** field points to your OpenAPI specification, which defines the actual callable endpoints with their parameters and response schemas. If you already have a Swagger/OpenAPI spec, you're most of the way there. The WebMCP registration is just the discovery layer on top of your existing API documentation.
+
+The **auth** field specifies whether and how authentication works — options include no auth (for public tools), API key auth, or OAuth. If your service is public and read-only, starting with no auth dramatically lowers the friction for AI agents to call you.
+
+Galuli auto-generates your /ai-plugin.json from your crawled site data and registers it with the WebMCP discovery network — saving you hours of manual spec writing and keeping the file in sync as your product evolves.`
+      },
+      {
+        heading: 'How to check if your site is WebMCP-ready',
+        body: `A quick manual check: navigate to https://yourdomain.com/.well-known/ai-plugin.json in your browser. If you get a valid JSON response, you have a basic registration. If you get a 404, you don't — and you're invisible to AI agents that use WebMCP discovery.
+
+A more thorough audit with Galuli's AI Readiness Score will tell you whether your registration is schema-conformant, whether your description_for_model is specific enough to be useful, whether your OpenAPI spec is accessible and well-structured, and how your WebMCP implementation compares to competitors in your category.
+
+The Machine Signals dimension of Galuli's score specifically measures WebMCP readiness, alongside llms.txt, robots.txt hygiene, and schema.org markup — the four pillars of machine-readable web presence.
+
+The agentic web is being built right now. The sites registering their tools today are the ones that will be called by AI agents tomorrow. The barrier to entry is lower than most people expect: if you have an API and 30 minutes, you have everything you need to publish a valid WebMCP registration.`
+      },
+    ],
+    cta: 'Check your WebMCP status →'
+  },
+  {
+    slug: 'how-to-get-ai-citations',
+    title: 'How to Get Your Website Cited by ChatGPT, Perplexity, and Claude',
+    subtitle: 'A practical, research-backed playbook for getting AI systems to recommend your product, service, or content — based on what each LLM actually values.',
+    date: 'March 4, 2026',
+    readTime: '12 min read',
+    category: 'Strategy',
+    coverEmoji: '🔗',
+    intro: `Getting cited by an AI system isn't luck. It's a function of specific, measurable signals that each AI weighs when deciding whether to include your site in a synthesized answer. The frustrating truth: most websites are not cited because of problems they could fix in a weekend. This guide covers what those problems are and how to fix them — with different advice for ChatGPT, Perplexity, and Claude, because they're genuinely different systems with different priorities.`,
+    sections: [
+      {
+        heading: 'Why different AI systems cite differently',
+        body: `ChatGPT, Perplexity, and Claude don't work the same way, and optimizing for all three requires understanding their differences.
+
+**ChatGPT** (with Browse/retrieval) uses a hybrid model: static training data plus real-time retrieval. For static training, being referenced in the kinds of sources that make it into large crawls — Wikipedia, major blogs, review sites, documentation — matters most. For retrieval, what matters is that your content is accessible, structured, and clearly answers the kind of question a user might be asking.
+
+**Perplexity** is retrieval-first. It's essentially a real-time search engine with synthesis. Perplexity indexes the web continuously, weights freshness heavily, and prefers sources with clear author attributions, published dates, and outbound citations. It's the AI most similar to Google in how it evaluates content — but it synthesizes rather than lists.
+
+**Claude** (in retrieval-augmented mode) excels at nuanced synthesis. Claude responds especially well to content that is specific, internally consistent, and well-organized. It's particularly good at extracting structured data — pricing tables, feature comparisons, use case descriptions — and is skeptical of vague claims without supporting detail.
+
+The universal truth: all three systems prefer content that is factually dense, well-organized, and easy to extract information from. The differences are in emphasis, not fundamentals.`
+      },
+      {
+        heading: 'The five signals that drive citation probability',
+        body: `Princeton's GEO-bench study (2023) tested hundreds of content variations against AI retrieval systems and identified the interventions that most reliably increase citation probability. Here's the ranked list:
+
+**1. Add statistics and cited data (+29% avg. citation probability)**
+Statements like "our tool saves teams 4 hours per week" are 29% more likely to be cited than "our tool saves time." The number makes the claim concrete and extractable. Add data wherever you make a claim. Cite your source — even if it's your own research — because cited data gets more weight than bare assertions.
+
+**2. Add authoritative citations (+27%)**
+Content that references external authoritative sources — studies, published reports, industry data — is treated as more credible by AI retrieval systems. This applies even when the claims are obviously true. Add "according to [source]" to your factual claims wherever possible.
+
+**3. Use structured quotations (+26%)**
+Direct quotes from identifiable sources (customers, researchers, experts) dramatically increase citation probability. An AI synthesizing an answer is much more likely to include a named, attributed quote than a paraphrase.
+
+**4. Add fluency and precision (+18%)**
+AI systems filter out hedging language. "Might," "could," "potentially," "we believe" all reduce citation probability. Replace hedges with specifics: "reduces latency by 40 milliseconds" rather than "might reduce latency significantly."
+
+**5. Include keyword-rich entity descriptions (+15%)**
+Describe your product's category, use case, and differentiation explicitly in your text. AI models use named entities to understand what something is. "Galuli is an AI visibility analytics platform that tracks which AI systems are crawling your website" gives the model clear entity data to work with.`
+      },
+      {
+        heading: 'What Perplexity specifically rewards',
+        body: `Perplexity's retrieval algorithm has some quirks that make it distinctly optimizable.
+
+**Freshness beats almost everything.** Content published or updated within the last 7 days has a significant advantage for time-sensitive queries. This doesn't mean churning out low-quality content — it means updating your existing pages regularly. Adding a "Last updated: [date]" tag and genuinely refreshing the content is enough to benefit from freshness signals.
+
+**Author attribution matters.** Perplexity displays author names in its citations. Pages with clear author bylines, especially from people with established web presence, are cited more often than anonymous pages. If your company blog posts don't have author names attached, add them.
+
+**Outbound links signal credibility.** Perplexity's algorithm treats outbound links as a credibility signal, similar to academic citations. Pages that cite their sources — linking to the studies, reports, and tools they reference — are cited more than pages that make claims without linking to evidence.
+
+**Page speed matters.** Perplexity's crawler has a timeout. Pages that take more than 5 seconds to fully render risk being partially or not indexed. Check your Core Web Vitals — Perplexity is one of the few AI systems where page performance directly affects citation probability.`
+      },
+      {
+        heading: 'What ChatGPT specifically rewards',
+        body: `ChatGPT's retrieval (via Browse and GPT Actions) behaves differently from Perplexity.
+
+**Structured formats outperform prose.** ChatGPT's retrieval system extracts information more effectively from bullet points, numbered lists, headers, and tables than from continuous prose. If your homepage is one long paragraph of marketing copy, ChatGPT is probably not extracting much useful information from it. Restructure key information into scannable formats.
+
+**Use-case specificity is critical.** ChatGPT is often responding to specific, high-intent queries: "best tool for [specific use case]." Pages that explicitly describe specific use cases — "ideal for engineering teams of 5–20 people that need weekly sprint reporting" — are more likely to match specific queries than generic benefit descriptions.
+
+**ai-plugin.json / GPT Actions enable direct integration.** ChatGPT's GPT Action ecosystem can directly call your API if you have a valid OpenAPI spec and plugin manifest. This isn't just a citation — it's your service being used directly inside ChatGPT. For services with clear, callable functionality, it's the highest-value GEO investment you can make.`
+      },
+      {
+        heading: 'What Claude specifically rewards',
+        body: `Claude (in tool-calling and retrieval-augmented mode) has some distinct preferences that are worth understanding.
+
+**Organizational clarity.** Claude excels at structured extraction. Clear H2 and H3 headings, logical section organization, and consistent formatting help Claude parse your content accurately. Poorly organized pages — where related information is scattered without clear navigation cues — tend to be synthesized inaccurately.
+
+**Explicit constraint documentation.** Claude is good at nuanced reasoning and tends to include nuance in its outputs. Pages that document what your product does NOT do (constraints, limitations, who it's not for) are cited more accurately than pages that only describe benefits. Saying "this is not suitable for [use case]" actually increases overall citation accuracy and credibility.
+
+**Technical depth rewards technical queries.** Claude's user base skews technical and analytical. For queries with technical depth — "how does [product] handle [technical scenario]" — Claude rewards pages with genuine technical depth over marketing summaries. Your documentation, API references, and technical blog posts may outperform your landing page for Claude citations.`
+      },
+      {
+        heading: 'Tracking whether it is working',
+        body: `The challenge with GEO is that you can't just check a rank tracker — there's no position 1. You need a different measurement approach.
+
+**Run actual queries.** Ask ChatGPT, Perplexity, and Claude the queries your customers would ask. Check if you're mentioned. Note the context. Track this over time, manually or with a tool.
+
+**Monitor AI crawler traffic.** AI systems like GPTBot, ClaudeBot, PerplexityBot, and others show up in your server logs with their own User-Agent strings. Standard analytics tools (GA4, Plausible) filter these out. Galuli's snippet captures them. Are your important pages being crawled? How often?
+
+**Watch your GEO Score.** Galuli's GEO Score across six AI systems shows trends over time — not just where you are now, but whether the changes you're making are moving the needle. A rising GEO Score correlates with rising citation probability.
+
+**Set up Citation Tracker queries.** Define the 3–5 queries where you want to appear in AI outputs. Run them weekly. Track whether you appear, what the context is, and whether your competitors appear more or less often. Galuli's Citation Tracker (available on Pro+) automates this with weekly scheduled checks.
+
+The sites winning AI citations in 2026 are the ones that started treating GEO as seriously as SEO 12 months ago. The good news: the bar is still low enough that a focused weekend of improvements can meaningfully shift your standing.`
+      },
+    ],
+    cta: 'Track your AI citations →'
+  },
+  {
+    slug: 'ai-readiness-tech-stack-2026',
+    title: 'The Complete AI Readiness Tech Stack for 2026',
+    subtitle: 'Every tool, file, and configuration your website needs to be fully visible to — and usable by — the AI systems that are reshaping how people discover products online.',
+    date: 'February 20, 2025',
+    readTime: '13 min read',
+    category: 'Technical',
+    coverEmoji: '🛠️',
+    intro: `AI readiness isn't one thing you add to your website — it's a stack of interconnected signals that AI systems use to understand, trust, and cite you. This guide breaks down every layer of that stack, explains what each does, and tells you exactly what "good" looks like for each layer. Think of it as a systematic checklist you can work through layer by layer.`,
+    sections: [
+      {
+        heading: 'Layer 1 — Crawl access (can AI find you?)',
+        body: `Before any AI system can read your content, it needs to be allowed to. This sounds obvious — of course my site is public — but a surprising number of sites unknowingly block AI crawlers.
+
+**robots.txt hygiene** is the most common problem. A robots.txt file that uses a wildcard block for all user agents, then only explicitly allows Googlebot, will exclude every AI crawler by default. GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot, FacebookBot (for Llama training), and others are not Googlebot. If your robots.txt has Disallow rules for unknown bots, AI crawlers may be blocked without you knowing.
+
+The ideal state: explicitly list the major AI crawlers and Allow them access to your key pages. If you want all AI crawlers to have full access, a blanket Allow under the catch-all user-agent is fine as long as you're not using Disallow rules that sweep too broadly.
+
+**JavaScript rendering** is the second most common problem. Most AI crawlers (GPTBot, ClaudeBot, PerplexityBot) do not execute JavaScript. If your content is rendered client-side in a React/Next.js/Svelte SPA with no server-side rendering or static export, AI crawlers may see a nearly empty page. Audit your key pages with JavaScript disabled — what you see is what AI crawlers see. Galuli flags this automatically if key content elements (headings, descriptions, pricing) are absent in the non-JS version of your page.
+
+**Crawl speed and reliability** matters too. AI crawlers are often less patient than Googlebot. Pages that consistently time out or return server errors get deprioritized or skipped entirely. Check your server logs for 5xx errors from known AI crawler User-Agent strings.`
+      },
+      {
+        heading: 'Layer 2 — Machine-readable declarations',
+        body: `Once an AI crawler can access your site, the next layer is machine-readable files that tell AI systems who you are and what you do — without requiring them to infer it from marketing copy.
+
+**llms.txt** is a Markdown file at your domain root (/llms.txt), written specifically for language models. It should include a concise description of what your product does, a bulleted list of key capabilities, pricing information, and key URLs (homepage, docs, pricing, API reference). The format is intentionally human-readable Markdown, because that's what LLMs handle best. Write it as you would a README.
+
+**ai-plugin.json** hosted at /.well-known/ai-plugin.json is the WebMCP discovery endpoint. Originally the OpenAI ChatGPT Plugin manifest, now extended as the standard for AI agent discovery. The most critical field is description_for_model — a specific, technical description of what your service does and when to use it. This is what AI agents read to decide whether to call your tool.
+
+**sitemap.xml** remains critically important for AI crawlers. A well-structured sitemap tells crawlers which URLs exist, when they were last updated, and their relative priority. Many sites have sitemaps that are outdated or missing key pages. Regenerate yours whenever you add significant content.
+
+**OpenAPI/Swagger spec** is the highest-value investment for API-first products. If you have an API, a valid OpenAPI 3.x spec at a discoverable URL is a machine-readable declaration of everything your service can do. ChatGPT's GPT Actions can ingest OpenAPI specs directly. Claude's tool-calling mode can use them.`
+      },
+      {
+        heading: 'Layer 3 — Structured data (schema.org)',
+        body: `Schema.org markup is the language that lets you tell AI systems what your content means — not just what it says. It's been around for over a decade, but most sites implement it incompletely or incorrectly.
+
+**Organization** schema is the baseline: who you are, your logo, your social profiles, your contact information. Every website should have this. AI systems use it to build a confident picture of your company's identity and distinguish you from similarly-named entities.
+
+**Product or SoftwareApplication** schema documents your product's name, description, pricing, platform availability, and ratings. This is what AI systems use when synthesizing answers to "what does this product cost" or "what does this product do." Without it, the AI is guessing from your marketing copy.
+
+**FAQPage** schema marks up question-and-answer pairs as structured data. Princeton's GEO-bench research found that FAQ-format content significantly increases AI citation probability. Adding schema.org FAQPage markup on top of well-written FAQ content gives you a structured-data bonus.
+
+**HowTo** schema marks up step-by-step processes. If you have tutorial content — how to install, how to set up, how to use — marking it up as HowTo schema makes it dramatically more usable by AI systems generating instructional content.
+
+**Article and BlogPosting** schemas add author, publication date, and section markup to your content pages. Particularly important for Perplexity, which weights author attribution heavily in its citation decisions.
+
+Implementation: add JSON-LD script blocks with type "application/ld+json" to the head of relevant pages. Galuli audits your schema.org implementation as part of the Machine Signals score dimension.`
+      },
+      {
+        heading: 'Layer 4 — Content quality signals',
+        body: `The structural and technical layers create the container. This layer is about what you put inside it — and specifically, the content quality signals that AI systems use to decide whether to trust and cite your content.
+
+**Citation density** is the highest-impact improvement most sites can make. Content that cites sources — linking to the studies, reports, and data that support your claims — is treated as dramatically more credible by AI retrieval systems. This mimics academic publishing norms. Statements with cited sources are 27–29% more likely to be extracted and used in AI answers than identical statements without citations.
+
+**Factual specificity** matters enormously. AI systems filter out vague claims. Sentences with specific numbers, dates, named entities, and technical details are extracted and cited far more than sentences with hedging language. Audit your key pages for vague claims and replace them with specific, measurable ones wherever possible.
+
+**Information gain** is the concept that AI systems de-prioritize content that is semantically identical to content they've already encountered. "Our tool is easy to use" adds zero information — every competitor says the same thing. "Our tool has a 15-minute average time-to-first-workflow, measured across 2,400 new user onboarding sessions" adds unique, extractable information that AI systems can actually work with.
+
+**Authority gap analysis** identifies every claim in your content that lacks a supporting citation — places where an AI system might reasonably doubt your assertion. Galuli's Content Doctor includes both an Authority Gap Scanner (finds unsupported claims) and an Information Gain Checker (flags generic content) to help you close these gaps systematically.`
+      },
+      {
+        heading: 'Layer 5 — Monitoring and measurement',
+        body: `The final layer is the measurement infrastructure that tells you whether the other four layers are working — and alerts you when something breaks.
+
+**AI crawler traffic monitoring** is the most overlooked piece. Standard analytics tools don't capture AI crawler traffic. GPTBot, ClaudeBot, PerplexityBot, and others are filtered out by most analytics platforms because they're not human users. But they matter: if GPTBot stops crawling your site, your citation probability in ChatGPT drops within weeks. You need to know when this happens. Galuli's snippet captures all bot traffic, identifies the agent, records which pages are visited, and tracks visit frequency over time.
+
+**GEO Score tracking** gives you an aggregate view of your AI readiness across six AI systems (ChatGPT, Perplexity, Claude, Gemini, Grok, Llama). Track it over time — rising scores correlate with rising citation probability, and drops alert you to new problems before they affect your actual citations.
+
+**Citation monitoring** means actively querying the AI systems that matter for your category and checking whether you're being cited. This can be done manually (ask ChatGPT and Perplexity your top 5 category queries once a week) or automated with Galuli's Citation Tracker, which runs scheduled weekly checks and surfaces changes in how AI systems are describing you and your competitors.
+
+**Automatic re-scanning** keeps your AI registry current as your content evolves. Galuli's Starter and Pro plans include weekly re-scans that update your score, regenerate your llms.txt and ai-plugin.json, and refresh your structured data audit — so your AI readiness stays current without manual effort.
+
+The goal of the full five-layer stack is to move from "AI systems might find you" to "AI systems will find you, understand you, trust you, and cite you." That's the difference between hoping for AI citations and systematically earning them.`
+      },
+    ],
+    cta: 'Run your AI readiness audit →'
+  },
+  {
     slug: 'what-is-geo',
     title: 'What Is GEO (Generative Engine Optimization)?',
     subtitle: "The complete guide to optimizing your website for ChatGPT, Claude, Perplexity, and every other AI that's replacing Google.",

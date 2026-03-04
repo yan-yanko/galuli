@@ -8,6 +8,7 @@ import { AboutPage } from './About.jsx'
 import { RoadmapPage } from './Roadmap.jsx'
 import { PricingPage } from './Pricing.jsx'
 import { AuthModal } from './AuthModal.jsx'
+import { InstallGuidePage } from './InstallGuide.jsx'
 
 // Simple path-based routing — no react-router needed
 // /dashboard/  → dashboard app
@@ -17,6 +18,7 @@ import { AuthModal } from './AuthModal.jsx'
 // /about        → about page
 // /roadmap      → product roadmap
 // /pricing      → pricing page
+// /install      → platform install guide
 // /auth/verify  → magic link callback (handled inside AuthModal on mount)
 const path = window.location.pathname
 
@@ -35,6 +37,7 @@ function Root() {
     if (path === '/about' || path === '/about/') return { page: 'about' }
     if (path === '/roadmap' || path === '/roadmap/') return { page: 'roadmap' }
     if (path === '/pricing' || path === '/pricing/') return { page: 'pricing' }
+    if (path === '/install' || path === '/install/') return { page: 'install' }
     return null
   })
 
@@ -79,6 +82,7 @@ function Root() {
             onAuthRequired={({ redirectTo, plan } = {}) => setShowAuth('signup')}
           />
         )}
+        {contentPage.page === 'install' && <InstallGuidePage onNavigate={handleContentNavigate} />}
       </>
     )
   }
