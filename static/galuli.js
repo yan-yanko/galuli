@@ -1,6 +1,6 @@
 /**
  * galuli.js — AI Readability Engine
- * Version: 3.1.0
+ * Version: 3.2.0
  *
  * Drop this on any website to make it instantly readable by LLMs and AI agents.
  *
@@ -27,7 +27,11 @@
 
   // ── Config from script tag ─────────────────────────────────────────────────
   var script = document.currentScript || (function () {
+    // document.currentScript is null in async mode — find galuli.js by hostname match
     var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      if (scripts[i].src && scripts[i].src.indexOf('galuli') !== -1) return scripts[i];
+    }
     return scripts[scripts.length - 1];
   })();
 
@@ -41,7 +45,8 @@
     });
   }
 
-  var TENANT_KEY    = params.key  || '';
+  // Support both data-key attribute and ?key= query string
+  var TENANT_KEY    = (script && script.getAttribute('data-key')) || params.key || '';
   var API_BASE      = params.api  || 'https://galuli.io';
   var DEBUG         = params.debug  === '1';
   var AUTO_SCHEMA   = params.schema !== '0';   // default: on
@@ -660,7 +665,7 @@
       tenant_key:      TENANT_KEY,
       page:            pageData,
       content_hash:    contentHash,
-      snippet_version: '3.1.0',
+      snippet_version: '3.2.0',
     };
 
     log('Pushing page data to backend:', pageData.url);
@@ -709,7 +714,7 @@
 
   // ── 8. Main init ───────────────────────────────────────────────────────────
   function _init() {
-    log('Initializing galuli v3.1.0 for domain:', domain);
+    log('Initializing galuli v3.2.0 for domain:', domain);
 
     // ── Inject all <head> signals first (fast, sync) ──────────────────────
     _injectDiscoveryLinks();
@@ -757,13 +762,43 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _init);
   } else {
-    // Script loaded async after DOM is ready; small delay for dynamic frameworks
-    setTimeout(_init, 120);
+    // Script loaded async after DOM is ready; 250ms gives React/Vue time to render
+    setTimeout(_init, 250);
   }
+
+  // ── 9. SPA Navigation Support ─────────────────────────────────────────────
+  // Lovable / Base44 / Replit / Next.js apps navigate via history.pushState
+  // without a page reload. Re-run _init on every route change so every page
+  // gets indexed, not just the first one loaded.
+  (function () {
+    var _lastUrl = window.location.href;
+
+    function _onNav() {
+      // Ignore hash-only changes on the same path
+      var newUrl = window.location.href;
+      if (newUrl === _lastUrl) return;
+      _lastUrl = newUrl;
+      // Wait for React/Vue to re-render the new page content
+      setTimeout(function () {
+        log('SPA navigation detected — re-indexing:', window.location.pathname);
+        _init();
+      }, 300);
+    }
+
+    // Monkey-patch pushState (React Router, Next.js, etc.)
+    var _origPush = history.pushState;
+    history.pushState = function () {
+      _origPush.apply(this, arguments);
+      _onNav();
+    };
+
+    // Also handle browser back/forward
+    window.addEventListener('popstate', _onNav);
+  })();
 
   // ── Public API (window.galui) ──────────────────────────────────────────────
   window.galuli = {
-    version: '3.1.0',
+    version: '3.2.0',
     domain:  domain,
     getTools: function () { return registeredTools.slice(); },
     getScore: function (callback) {
@@ -778,6 +813,6 @@
   };
   window.galui = window.galuli; // backward-compat alias — existing installs using window.galui still work
 
-  log('galuli.js loaded — v3.1.0');
+  log('galuli.js loaded — v3.2.0');
 
 }(window, document));

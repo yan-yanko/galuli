@@ -96,7 +96,7 @@ galuli/
 │       ├── index.css            ← design system / global styles (Linear-inspired)
 │       └── App.css
 ├── static/
-│   └── galuli.js                ← Customer snippet (vanilla JS IIFE, v3.1.0)
+│   └── galuli.js                ← Customer snippet (vanilla JS IIFE, v3.2.0)
 ├── Dockerfile
 ├── .env.example
 └── CLAUDE.md                    ← this file
@@ -126,7 +126,7 @@ app.include_router(citations.router,      prefix="/api/v1/citations")
 | Method | Path | Description |
 |---|---|---|
 | GET | `/health` | Health check + indexed count |
-| GET | `/galuli.js` | Snippet file (v3.1.0) |
+| GET | `/galuli.js` | Snippet file (v3.2.0) |
 | GET | `/galui.js` | 301 redirect → /galuli.js (legacy) |
 | GET | `/robots.txt` | robots.txt (all AI crawlers: Allow /) |
 | GET | `/sitemap.xml` | XML sitemap |
@@ -201,11 +201,13 @@ After middleware, handlers receive:
 
 ## galuli.js Snippet (static/galuli.js)
 
-**Version:** 3.1.0
-**Install:** `<script src="https://galuli.io/galuli.js" data-key="YOUR_API_KEY" async></script>`
+**Version:** 3.2.0
+**Install (query string):** `<script src="https://galuli.io/galuli.js?key=YOUR_KEY" async></script>`
+**Install (data-key attr):** `<script src="https://galuli.io/galuli.js" data-key="YOUR_KEY" async></script>`
+Both formats work. Query string is shown in the dashboard. `data-key` is the friendly fallback.
 
 ### What it does on every page load:
-1. Reads `data-key` attribute → tenant API key
+1. Reads tenant API key from `data-key` attribute OR `?key=` query string on `src`
 2. Extracts page structure: title, description, headings, CTAs, forms, schema.org JSON-LD
 3. Registers WebMCP tools if `window.__webmcp__` present
 4. Sends `POST /api/v1/push` with structured payload
@@ -216,6 +218,11 @@ After middleware, handlers receive:
 window.galuli = { version, domain, getTools(), ... }
 window.galui = window.galuli  // backward-compat alias
 ```
+
+### SPA navigation
+v3.2.0 monkey-patches `history.pushState` and listens to `popstate` to re-run
+page analysis on every route change. This makes galuli.js fully compatible with
+Lovable, Base44, Replit, Next.js, React Router, and any client-side SPA.
 
 ### Critical: tenant auth
 The snippet authenticates via `payload.tenant_key` inside the POST body (NOT via header), because it runs on customer sites where setting custom headers is CORS-restricted for non-preflight requests.
