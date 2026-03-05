@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { GaluMascot } from './Galu.jsx'
 
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:8000'
@@ -132,14 +133,14 @@ export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>⬡</div>
+          <GaluMascot size={52} style={{ marginBottom: 8 }} />
           <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--fg)' }}>galuli</div>
         </div>
 
         {/* ── Beta signup done ── */}
         {mode === 'signup_done' && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+            <GaluMascot size={72} mood="celebrate" style={{ marginBottom: 16 }} />
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10, color: 'var(--fg)' }}>You're on the list!</h2>
             <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 6 }}>
               Welcome to the Galuli beta. Yan will reach out to you at

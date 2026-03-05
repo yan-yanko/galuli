@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { GaluMascot } from './Galu.jsx'
 
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:8000'
@@ -806,7 +807,7 @@ export function ResultsPage({ data, onRegistered }) {
           </div>
         ) : (
           <div className="card" style={{ marginBottom: 16, borderColor: 'rgba(74,173,82,0.25)' }}>
-            <div style={{ fontSize: 28, marginBottom: 10 }}>🎉</div>
+            <GaluMascot size={56} mood="celebrate" style={{ marginBottom: 10 }} />
             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, letterSpacing: '-0.2px' }}>You're on the list!</div>
             <p style={{ color: 'var(--subtle)', fontSize: 13, lineHeight: 1.7, marginBottom: 14, maxWidth: 420 }}>
               Yan will reach out to you at <strong style={{ color: 'var(--text)' }}>{email}</strong> personally — usually within a day.
