@@ -45,13 +45,13 @@ export function GaluMascot({ size = 56, color = 'var(--accent)', mood = 'default
   const strokeWidths = [5.5, 5, 4.5, 4.5, 5, 5.5]
 
   return (
+    <div style={{ display: 'inline-block', lineHeight: 0, ...style }}>
     <svg
       width={size}
       height={size}
       viewBox="0 0 80 80"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={style}
     >
       {/* 6 tentacles drawn first so body overlaps them at the join */}
       {arms.map((d, i) => (
@@ -86,5 +86,6 @@ export function GaluMascot({ size = 56, color = 'var(--accent)', mood = 'default
       {/* Tiny smile */}
       <path d="M37 35 Q40 38 43 35" stroke="white" strokeWidth="1.4" strokeLinecap="round" opacity="0.6" />
     </svg>
+    </div>
   )
 }

@@ -40,9 +40,10 @@ async function getRegistry(domain) {
 }
 
 // ── Shared ────────────────────────────────────────────────────────────────────
-export function ScoreRingLanding({ score, size = 80 }) {
+export function ScoreRingLanding({ score, size = 80, accentColor }) {
   const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 55 ? 'C' : score >= 40 ? 'D' : 'F'
-  const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--blue)' : score >= 40 ? 'var(--yellow)' : 'var(--red)'
+  const defaultColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--blue)' : score >= 40 ? 'var(--yellow)' : 'var(--red)'
+  const color = accentColor || defaultColor
   const r = size / 2 - 7
   const circ = 2 * Math.PI * r
   const dash = (score / 100) * circ
@@ -172,94 +173,132 @@ function ScanAnimation({ url, progress }) {
   )
 }
 
-// ── Hero animation widget ─────────────────────────────────────────────────────
-function HeroAnimation() {
+// ── Animated stat counter ─────────────────────────────────────────────────────
+function AnimatedStat({ target, format, label, sub }) {
+  const ref = useRef()
+  const [val, setVal] = useState(0)
+  const started = useRef(false)
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true
+        const startTime = performance.now()
+        const duration = 1400
+        const step = (now) => {
+          const progress = Math.min((now - startTime) / duration, 1)
+          const eased = 1 - Math.pow(1 - progress, 3)
+          setVal(target * eased)
+          if (progress < 1) requestAnimationFrame(step)
+        }
+        requestAnimationFrame(step)
+      }
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [target])
+  return (
+    <div ref={ref}>
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{format(val)}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginTop: 3 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{sub}</div>
+    </div>
+  )
+}
+
+// ── Interactive AI engine demo ────────────────────────────────────────────────
+function InteractiveDemo() {
+  const ENGINES = [
+    { name: 'ChatGPT',    score: 82, color: '#10a37f', bars: [90, 78, 65, 85, 72] },
+    { name: 'Claude',     score: 91, color: '#5e6ad2', bars: [95, 88, 82, 90, 88] },
+    { name: 'Perplexity', score: 74, color: '#4b9bdd', bars: [85, 70, 55, 72, 75] },
+    { name: 'Gemini',     score: 68, color: '#d9a53a', bars: [75, 65, 50, 68, 62] },
+    { name: 'Grok',       score: 55, color: '#e5484d', bars: [60, 52, 40, 58, 60] },
+    { name: 'Llama',      score: 63, color: '#8b5cf6', bars: [70, 60, 45, 65, 70] },
+  ]
+  const DIMS = ['Content', 'Structure', 'Signals', 'Authority', 'Freshness']
+  const [active, setActive] = useState(0)
+  const paused = useRef(false)
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (!paused.current) setActive(a => (a + 1) % ENGINES.length)
+    }, 2400)
+    return () => clearInterval(t)
+  }, [])
+
+  const handleSelect = (i) => {
+    paused.current = true
+    setActive(i)
+    setTimeout(() => { paused.current = false }, 9000)
+  }
+
+  const engine = ENGINES[active]
+
   return (
     <div style={{ width: '100%', maxWidth: 520, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-      {/* Header bar */}
-      <div style={{ height: 3, background: 'linear-gradient(90deg, var(--accent), var(--accent2))' }} />
-      <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Color accent bar */}
+      <div style={{ height: 3, background: engine.color, transition: 'background 0.5s ease' }} />
 
-        {/* Step 01 */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: 'white' }}>01</div>
-            Your website
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 16px' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>yourwebsite.com</div>
-              <div style={{ fontSize: 12, color: 'var(--subtle)', marginTop: 3 }}>12 pages · 4.2k words</div>
+      {/* Engine tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
+        {ENGINES.map((e, i) => (
+          <button key={e.name} onClick={() => handleSelect(i)} style={{
+            flex: 1, padding: '8px 4px', background: 'none', border: 'none',
+            borderBottom: `2px solid ${active === i ? e.color : 'transparent'}`,
+            cursor: 'pointer', fontSize: 10, fontWeight: 600,
+            color: active === i ? e.color : 'var(--muted)',
+            transition: 'all 0.2s', whiteSpace: 'nowrap', minWidth: 0,
+          }}>{e.name}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: '18px 22px' }}>
+        {/* Score row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <ScoreRingLanding score={engine.score} size={64} accentColor={engine.color} />
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 3 }}>
+              {engine.name} readiness score
             </div>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 4px var(--green)' }} />
+            <div style={{ fontSize: 20, fontWeight: 800, color: engine.color, letterSpacing: '-0.5px', lineHeight: 1, transition: 'color 0.4s ease' }}>
+              {engine.score}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--subtle)' }}>/100</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 4 }}>yourwebsite.com · example</div>
           </div>
         </div>
 
-        {/* Arrow */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <svg width={20} height={16} viewBox="0 0 20 16" fill="none">
-            <line x1={10} y1={0} x2={10} y2={10} stroke="var(--border2)" strokeWidth={1.5} strokeDasharray="3 2" />
-            <polyline points="5,8 10,14 15,8" stroke="var(--border2)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-
-        {/* Step 02 */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: 'white' }}>02</div>
-            AI pipeline
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
-              { label: 'Content extraction',   color: 'var(--accent)',  delay: '0s'    },
-              { label: 'Capability mapping',    color: 'var(--blue)',    delay: '0.3s'  },
-              { label: 'Structure analysis',    color: 'var(--purple)',  delay: '0.6s'  },
-              { label: 'Intent classification', color: 'var(--green)',   delay: '0.9s'  },
-            ].map(({ label, color, delay }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                  <div className="animate-aipass" style={{ height: '100%', borderRadius: 2, background: color, animationDelay: delay }} />
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--subtle)', width: 140 }}>{label}</div>
+        {/* Dimension bars */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {DIMS.map((d, i) => (
+            <div key={d}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 3 }}>
+                <span style={{ color: 'var(--subtle)' }}>{d}</span>
+                <span style={{ color: engine.color, fontWeight: 700, transition: 'color 0.4s ease' }}>{engine.bars[i]}</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Arrow */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <svg width={20} height={16} viewBox="0 0 20 16" fill="none">
-            <line x1={10} y1={0} x2={10} y2={10} stroke="var(--border2)" strokeWidth={1.5} strokeDasharray="3 2" />
-            <polyline points="5,8 10,14 15,8" stroke="var(--border2)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-
-        {/* Step 03 — Score */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: 'white' }}>03</div>
-            AI Readiness Score
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '14px 16px' }}>
-            <ScoreRingLanding score={78} size={68} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>Ready for AI</div>
-              {[
-                { d: 'Content',   v: 85, c: 'var(--accent)' },
-                { d: 'Structure', v: 72, c: 'var(--blue)' },
-                { d: 'WebMCP',    v: 40, c: 'var(--yellow)' },
-              ].map(({ d, v, c }) => (
-                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                  <div style={{ fontSize: 11, color: 'var(--subtle)', width: 56 }}>{d}</div>
-                  <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: c, borderRadius: 2, width: `${v}%` }} />
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--subtle)', width: 22, textAlign: 'right' }}>{v}</div>
-                </div>
-              ))}
+              <div style={{ background: 'var(--border)', borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 3, background: engine.color, opacity: 0.85,
+                  width: `${engine.bars[i]}%`,
+                  transition: 'width 0.55s cubic-bezier(0.4,0,0.2,1), background 0.4s ease',
+                }} />
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dot nav + label */}
+      <div style={{ padding: '8px 22px 12px', display: 'flex', alignItems: 'center', gap: 5, borderTop: '1px solid var(--border)' }}>
+        {ENGINES.map((e, i) => (
+          <button key={e.name} onClick={() => handleSelect(i)} style={{
+            width: active === i ? 16 : 6, height: 6, borderRadius: 3, border: 'none',
+            cursor: 'pointer', padding: 0,
+            background: active === i ? e.color : 'var(--border2)',
+            transition: 'all 0.25s ease',
+          }} />
+        ))}
+        <div style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.4px', fontWeight: 600 }}>
+          {paused.current ? 'PINNED' : 'AUTO-CYCLING'}
         </div>
       </div>
     </div>
@@ -319,6 +358,25 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
   const inputRef = useRef()
+
+  // Bottom CTA beta signup
+  const [betaEmail, setBetaEmail] = useState('')
+  const [betaDone, setBetaDone] = useState(false)
+  const [betaSubmitting, setBetaSubmitting] = useState(false)
+
+  const handleBetaSignup = async (e) => {
+    e.preventDefault()
+    setBetaSubmitting(true)
+    try {
+      const name = betaEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Beta user'
+      await fetch(`${API_BASE}/api/v1/tenants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email: betaEmail.trim(), plan: 'free', password: null }),
+      })
+    } catch (_) { /* fail silently */ }
+    finally { setBetaDone(true); setBetaSubmitting(false) }
+  }
 
   const STAGES = ['Crawling your pages…','Running AI analysis (4 passes)…','Extracting capabilities…','Calculating AI Readiness Score…','Almost done…']
 
@@ -380,7 +438,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <div className="badge badge-purple" style={{ fontSize: 11 }}>
                 Private Beta
               </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>· Limited access · Yan reviews each signup personally</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>· Limited access · Every signup reviewed personally</div>
             </div>
             <h1 style={{ fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 22, color: 'var(--text)' }}>
               Make your website<br />
@@ -394,7 +452,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
               {[
                 { label: 'Effortless.', detail: 'One script tag. Galuli handles everything else automatically.' },
-                { label: 'Beta access.', detail: 'Scan your site free. Yan reviews every signup and will reach out personally.' },
+                { label: 'Beta access.', detail: 'Scan your site free. Every signup gets a personal onboarding — not automated.' },
                 { label: 'Universal.', detail: 'ChatGPT, Claude, Perplexity, Gemini, Grok — all of them, at once.' },
               ].map(({ label, detail }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15 }}>
@@ -414,7 +472,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
                   placeholder="yourwebsite.com"
                   style={{ flex: 1, minWidth: 200 }}
                 />
-                <button type="submit" className="btn btn-primary">Scan my site free →</button>
+                <button type="submit" className="btn btn-primary">Get my score →</button>
               </form>
             )}
             {stage === 'error' && (
@@ -428,12 +486,12 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
                 <ScanAnimation url={url} progress={progress} />
               </div>
             )}
-            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free scan · No account needed · Yan will reach out after you join</p>
+            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free scan · No account needed · No credit card</p>
           </div>
 
-          {/* Right — hero animation */}
+          {/* Right — interactive AI engine demo */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <HeroAnimation />
+            <InteractiveDemo />
           </div>
         </div>
       </div>
@@ -441,18 +499,10 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       {/* ── Stats strip ── */}
       <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '20px 32px' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, textAlign: 'center' }}>
-          {[
-            { number: '14.2%', label: 'AI traffic conversion rate', sub: 'vs 2.8% traditional search' },
-            { number: '$750B', label: 'AI-mediated commerce by 2028', sub: 'Gartner estimate' },
-            { number: '30–40%', label: 'more AI citations', sub: 'by adding stats — Princeton GEO-bench' },
-            { number: '76.4%', label: 'of AI-cited pages', sub: 'updated in the last 30 days' },
-          ].map(({ number, label, sub }) => (
-            <div key={number}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{number}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginTop: 3 }}>{label}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{sub}</div>
-            </div>
-          ))}
+          <AnimatedStat target={14.2} format={v => `${v.toFixed(1)}%`}  label="AI traffic conversion rate"   sub="vs 2.8% traditional search" />
+          <AnimatedStat target={750}  format={v => `$${Math.round(v)}B`} label="AI-mediated commerce by 2028" sub="Gartner estimate" />
+          <AnimatedStat target={35}   format={v => `+${Math.round(v)}%`} label="more AI citations from GEO"   sub="Princeton GEO-bench" />
+          <AnimatedStat target={76.4} format={v => `${v.toFixed(1)}%`}  label="of AI-cited pages"            sub="updated in last 30 days" />
         </div>
       </div>
 
@@ -479,7 +529,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
             { step: '02', title: 'Add one script tag', desc: 'Copy one line into your site\'s <head>. Galuli auto-generates your llms.txt, registers your capabilities with WebMCP, and starts tracking which AI systems visit you.', tag: '30 seconds to install' },
             { step: '03', title: 'Every AI can read you now', desc: 'ChatGPT, Claude, Perplexity, Gemini, Grok — they can all read, understand, and cite your site. Your readability score updates automatically as your content changes.' },
           ].map(({ step, title, desc, tag }) => (
-            <div key={step} style={{ background: 'var(--surface)', padding: '24px 24px 20px', position: 'relative' }}>
+            <div key={step} className="step-card" style={{ background: 'var(--surface)', padding: '24px 24px 20px', position: 'relative', transition: 'background 0.2s ease' }}>
               {tag && <div style={{ position: 'absolute', top: 16, right: 16, fontSize: 10, background: 'rgba(94,106,210,0.1)', border: '1px solid rgba(94,106,210,0.25)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 3, fontWeight: 600 }}>{tag}</div>}
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>Step {step}</div>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--text)', letterSpacing: '-0.2px' }}>{title}</div>
@@ -506,7 +556,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               { title: 'AI Traffic Analytics',             desc: 'See which AI crawlers visit your site, which pages they read, how deep they go, and how that changes over time. Invisible to Google Analytics — visible to Galuli.', color: 'var(--red)' },
               { title: 'WebMCP + Auto-refresh',            desc: 'Registers your capabilities as callable tools in AI agent frameworks. Content change detection re-indexes automatically — AI systems always see your latest version.', color: 'var(--purple)' },
             ].map(({ title, desc, color }) => (
-              <div key={title} style={{ background: 'var(--surface)', padding: '20px 22px' }}>
+              <div key={title} className="feature-card" style={{ background: 'var(--surface)', padding: '20px 22px', transition: 'background 0.2s ease, box-shadow 0.2s ease' }}>
                 <div style={{ width: 3, height: 16, background: color, borderRadius: 2, marginBottom: 12 }} />
                 <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>{title}</div>
                 <div style={{ fontSize: 14, color: 'var(--subtle)', lineHeight: 1.7 }}>{desc}</div>
@@ -594,12 +644,20 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '64px 32px' }}>
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <div className="badge badge-purple" style={{ fontSize: 11, marginBottom: 16, display: 'inline-block' }}>Private Beta</div>
-          <h2 style={{ fontSize: 'clamp(30px, 3.5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 12, color: 'var(--text)', lineHeight: 1.1 }}>Is your site readable by AI?</h2>
-          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Free scan. See your AI Readiness Score in 60 seconds. Yan will reach out personally after you join.</p>
-          <form onSubmit={handleScan} style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <input value={url} onChange={e => setUrl(e.target.value)} placeholder="yourwebsite.com" style={{ flex: 1, minWidth: 200, maxWidth: 300 }} />
-            <button type="submit" className="btn btn-primary">Scan my site →</button>
-          </form>
+          <h2 style={{ fontSize: 'clamp(30px, 3.5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 12, color: 'var(--text)', lineHeight: 1.1 }}>Ready to join?</h2>
+          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Drop your email. Free forever, no credit card. You'll get personal onboarding — not a drip campaign.</p>
+          {betaDone ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'rgba(74,173,82,0.08)', border: '1px solid rgba(74,173,82,0.25)', borderRadius: 8, fontSize: 14, color: 'var(--green)', fontWeight: 600 }}>
+              <span style={{ fontSize: 18 }}>✓</span> You're on the list — we'll be in touch soon.
+            </div>
+          ) : (
+            <form onSubmit={handleBetaSignup} style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <input type="email" required value={betaEmail} onChange={e => setBetaEmail(e.target.value)} placeholder="you@company.com" style={{ flex: 1, minWidth: 200, maxWidth: 300 }} />
+              <button type="submit" className="btn btn-primary" disabled={betaSubmitting}>
+                {betaSubmitting ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Joining…</> : 'Join the beta →'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -622,6 +680,13 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       <style>{`
         @media (max-width: 800px) {
           .hero-grid { grid-template-columns: 1fr !important; }
+        }
+        .feature-card:hover {
+          background: var(--surface2) !important;
+          box-shadow: inset 0 0 0 1px var(--border2);
+        }
+        .step-card:hover {
+          background: var(--surface2) !important;
         }
       `}</style>
     </div>
@@ -795,7 +860,7 @@ export function ResultsPage({ data, onRegistered }) {
               <div className="badge badge-purple" style={{ fontSize: 10 }}>Private Beta</div>
             </div>
             <p style={{ color: 'var(--subtle)', fontSize: 12, lineHeight: 1.7, marginBottom: 16, maxWidth: 440 }}>
-              Drop your email and Yan (the founder) will reach out personally to get you set up. Free, no credit card.
+              Drop your email to join the beta. Free, no credit card. You'll get a personal onboarding — not an automated drip.
             </p>
             <form onSubmit={handleEmailSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required style={{ flex: 1, minWidth: 200 }} />
