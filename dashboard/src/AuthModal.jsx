@@ -13,7 +13,7 @@ const API_BASE = window.location.hostname === 'localhost'
  *   initialMode         — 'signup' | 'login' | 'magic'
  */
 export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
-  const [mode, setMode] = useState(initialMode) // signup | login | magic | magic_sent
+  const [mode, setMode] = useState(initialMode) // signup | login | magic | magic_sent | signup_done
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,7 +48,7 @@ export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Signup failed')
       _saveSession(data)
-      onSuccess(data)
+      setMode('signup_done') // show beta thank-you before handing off to parent
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -136,6 +136,32 @@ export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
           <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--fg)' }}>galuli</div>
         </div>
 
+        {/* ── Beta signup done ── */}
+        {mode === 'signup_done' && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10, color: 'var(--fg)' }}>You're on the list!</h2>
+            <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 6 }}>
+              Welcome to the Galuli beta. Yan will reach out to you at
+            </p>
+            <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--fg)', marginBottom: 16 }}>{email}</p>
+            <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+              Usually within a day or two — personally, not a bot.
+            </p>
+            <button className="btn btn-primary" style={{ width: '100%', padding: '13px 0', fontWeight: 700 }}
+              onClick={() => {
+                // Retrieve the saved session and pass it to the parent
+                const savedKey = localStorage.getItem('galuli_api_key')
+                const savedEmail = localStorage.getItem('galuli_email')
+                const savedName = localStorage.getItem('galuli_name')
+                const savedPlan = localStorage.getItem('galuli_plan') || 'free'
+                onSuccess({ api_key: savedKey, email: savedEmail, name: savedName, plan: savedPlan })
+              }}>
+              Open your dashboard →
+            </button>
+          </div>
+        )}
+
         {/* ── Magic sent state ── */}
         {mode === 'magic_sent' && (
           <div style={{ textAlign: 'center' }}>
@@ -152,18 +178,18 @@ export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
         )}
 
         {/* ── Loading token verify ── */}
-        {mode !== 'magic_sent' && loading && !error && (
+        {mode !== 'magic_sent' && mode !== 'signup_done' && loading && !error && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 14, color: 'var(--muted)' }}>Verifying…</div>
           </div>
         )}
 
         {/* ── Main form ── */}
-        {mode !== 'magic_sent' && !loading && (
+        {mode !== 'magic_sent' && mode !== 'signup_done' && !loading && (
           <>
             {/* Tab switcher */}
             <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border)' }}>
-              {[['signup', 'Sign up'], ['login', 'Log in'], ['magic', '✉️ Magic link']].map(([m, label]) => (
+              {[['signup', 'Join beta'], ['login', 'Log in'], ['magic', '✉️ Magic link']].map(([m, label]) => (
                 <button
                   key={m}
                   onClick={() => { setMode(m); clearState() }}
@@ -204,12 +230,11 @@ export function AuthModal({ onSuccess, onClose, initialMode = 'signup' }) {
                     style={{ width: '100%', padding: '11px 14px', borderRadius: 10, fontSize: 14 }} />
                 </div>
                 <button type="submit" className="btn btn-primary" style={{ padding: '13px 0', fontWeight: 700, marginTop: 4 }} disabled={loading}>
-                  {loading ? 'Creating account…' : 'Create free account →'}
+                  {loading ? 'Joining…' : 'Join the beta →'}
                 </button>
                 <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
-                  By signing up you agree to our{' '}
-                  <a href="/about" style={{ color: 'var(--accent)' }}>terms</a>.
-                  No credit card required.
+                  Yan reviews every signup personally. No credit card required.{' '}
+                  <a href="/about" style={{ color: 'var(--accent)' }}>Terms</a>.
                 </p>
               </form>
             )}

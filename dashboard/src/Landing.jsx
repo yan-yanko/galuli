@@ -77,7 +77,7 @@ function LandingNav({ onSignIn }) {
         <a href="/about"   className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>About</a>
         <a href="/pricing" className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>Pricing</a>
         <button className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }} onClick={() => onSignIn && onSignIn()}>Sign in</button>
-        <a href="/pricing" className="btn btn-primary btn-sm" style={{ marginLeft: 6 }}>Get started free</a>
+        <a href="/pricing" className="btn btn-primary btn-sm" style={{ marginLeft: 6 }}>Join the beta →</a>
       </div>
     </nav>
   )
@@ -375,8 +375,11 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 1400, margin: '0 auto', padding: '80px 64px 72px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,560px)', gap: 80, alignItems: 'center' }}>
           {/* Left */}
           <div>
-            <div className="badge badge-purple" style={{ marginBottom: 20, fontSize: 11 }}>
-              AI Accessibility — one line of code
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+              <div className="badge badge-purple" style={{ fontSize: 11 }}>
+                Private Beta
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>· Limited access · Yan reviews each signup personally</div>
             </div>
             <h1 style={{ fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 22, color: 'var(--text)' }}>
               Make your website<br />
@@ -390,7 +393,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
               {[
                 { label: 'Effortless.', detail: 'One script tag. Galuli handles everything else automatically.' },
-                { label: 'Affordable.', detail: 'From $9/month, free scan, no credit card required.' },
+                { label: 'Beta access.', detail: 'Scan your site free. Yan reviews every signup and will reach out personally.' },
                 { label: 'Universal.', detail: 'ChatGPT, Claude, Perplexity, Gemini, Grok — all of them, at once.' },
               ].map(({ label, detail }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15 }}>
@@ -424,7 +427,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
                 <ScanAnimation url={url} progress={progress} />
               </div>
             )}
-            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free scan · No credit card · Results in ~60 seconds</p>
+            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free scan · No account needed · Yan will reach out after you join</p>
           </div>
 
           {/* Right — hero animation */}
@@ -589,11 +592,12 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       {/* ── Bottom CTA ── */}
       <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '64px 32px' }}>
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+          <div className="badge badge-purple" style={{ fontSize: 11, marginBottom: 16, display: 'inline-block' }}>Private Beta</div>
           <h2 style={{ fontSize: 'clamp(30px, 3.5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 12, color: 'var(--text)', lineHeight: 1.1 }}>Is your site readable by AI?</h2>
-          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Free scan. See your AI Readability Score in 60 seconds — no credit card.</p>
+          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Free scan. See your AI Readiness Score in 60 seconds. Yan will reach out personally after you join.</p>
           <form onSubmit={handleScan} style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
             <input value={url} onChange={e => setUrl(e.target.value)} placeholder="yourwebsite.com" style={{ flex: 1, minWidth: 200, maxWidth: 300 }} />
-            <button type="submit" className="btn btn-primary">Get free scan →</button>
+            <button type="submit" className="btn btn-primary">Scan my site →</button>
           </form>
         </div>
       </div>
@@ -640,9 +644,29 @@ export function ResultsPage({ data, onRegistered }) {
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 700))
-    localStorage.setItem('galuli_user', JSON.stringify({ email, registered_at: new Date().toISOString() }))
-    setEmailDone(true); setSubmitting(false)
+    try {
+      // Derive a name from the email (e.g. "jane" from "jane@company.com")
+      const derivedName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Beta user'
+      const res = await fetch(`${API_BASE}/api/v1/tenants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: derivedName, email: email.trim(), plan: 'free', password: null }),
+      })
+      const data = await res.json()
+      // Accept both success and "already exists" as OK — user is in the system either way
+      if (res.ok) {
+        localStorage.setItem('galuli_api_key', data.api_key)
+        localStorage.setItem('galuli_email', data.email)
+        localStorage.setItem('galuli_name', data.name)
+        localStorage.setItem('galuli_plan', data.plan || 'free')
+      }
+    } catch (_) {
+      // Fail silently — still show the thank-you (email was captured if the request went through)
+    } finally {
+      localStorage.setItem('galuli_user', JSON.stringify({ email, registered_at: new Date().toISOString() }))
+      setEmailDone(true)
+      setSubmitting(false)
+    }
   }
 
   const DIM_COLORS = {
@@ -765,27 +789,31 @@ export function ResultsPage({ data, onRegistered }) {
         {/* CTA */}
         {!emailDone ? (
           <div className="card" style={{ marginBottom: 16, borderColor: 'rgba(94,106,210,0.25)', background: 'var(--surface)' }}>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, letterSpacing: '-0.2px' }}>See {domain}'s full AI picture</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.2px' }}>Join the beta</div>
+              <div className="badge badge-purple" style={{ fontSize: 10 }}>Private Beta</div>
+            </div>
             <p style={{ color: 'var(--subtle)', fontSize: 12, lineHeight: 1.7, marginBottom: 16, maxWidth: 440 }}>
-              Free account — no credit card. AI Attention Score, GEO scores for 6 AI systems, and one install snippet.
+              Drop your email and Yan (the founder) will reach out personally to get you set up. Free, no credit card.
             </p>
             <form onSubmit={handleEmailSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required style={{ flex: 1, minWidth: 200 }} />
               <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Creating…</> : 'Get free account →'}
+                {submitting ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Joining…</> : 'Join the beta →'}
               </button>
             </form>
-            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free forever for 3 sites · No credit card</p>
+            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free · No credit card · Yan reviews every signup</p>
           </div>
         ) : (
           <div className="card" style={{ marginBottom: 16, borderColor: 'rgba(74,173,82,0.25)' }}>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>✓ You're in — open your dashboard</div>
-            <p style={{ color: 'var(--subtle)', fontSize: 12, lineHeight: 1.7, marginBottom: 14 }}>
-              Your free account is ready. Add the snippet to {domain} and Galuli starts tracking AI traffic immediately.
+            <div style={{ fontSize: 28, marginBottom: 10 }}>🎉</div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, letterSpacing: '-0.2px' }}>You're on the list!</div>
+            <p style={{ color: 'var(--subtle)', fontSize: 13, lineHeight: 1.7, marginBottom: 14, maxWidth: 420 }}>
+              Yan will reach out to you at <strong style={{ color: 'var(--text)' }}>{email}</strong> personally — usually within a day.
+              In the meantime, your dashboard is ready to explore.
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={() => onRegistered && onRegistered()} className="btn btn-primary">Open Dashboard →</button>
-              <a href="/pricing" className="btn btn-ghost">Upgrade to Starter — $9/mo</a>
             </div>
           </div>
         )}
