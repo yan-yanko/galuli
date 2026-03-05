@@ -1,6 +1,6 @@
 # Galuli — Claude Session Memory
 
-> Last updated: 2026-03-04
+> Last updated: 2026-03-05
 
 ---
 
@@ -37,7 +37,8 @@ It provides a GEO (Generative Engine Optimization) score, Content Doctor fixes, 
 - **Single-page app** at `/dashboard/` (Vite base: `/dashboard/`)
 - **Hash-based routing** — tabs use `window.location.hash` (#overview, #geo, #settings, etc.)
 - `navigate(page)` wrapper updates both hash and React state atomically
-- Back/forward browser navigation works via `popstate` listener
+- Back/forward browser navigation works via `hashchange` listener
+- **Lazy-mount + `display:none` tab pattern** — each page component mounts on first visit and stays mounted permanently. Tab switching only toggles CSS visibility; no unmount means no state loss and no re-fetch flash when returning to a tab.
 
 ### Backend
 - FastAPI app serves React SPA from `/static/dashboard/` (built by Docker first stage)
@@ -92,7 +93,7 @@ galuli/
 ├── dashboard/
 │   └── src/
 │       ├── main.jsx             ← Root router (path-based, no react-router)
-│       ├── App.jsx              ← Dashboard SPA (~2600 lines, one file)
+│       ├── App.jsx              ← Dashboard SPA (~3,280 lines, one file — see Known Technical Debt)
 │       ├── Landing.jsx          ← LandingPage + ResultsPage (root /)
 │       ├── Blog.jsx             ← BlogListPage + BlogPostPage + POSTS array (12 posts)
 │       ├── About.jsx            ← AboutPage (/about)
@@ -440,10 +441,11 @@ App
 ### Routing
 ```js
 const VALID_PAGES = ['overview','score','geo','analytics','content-doctor',
-                     'snippet','settings','ingest','registries','tenants']
+                     'citations','snippet','settings','ingest','registries','tenants']
 // Hash-based: galuli.io/dashboard/#settings
-// navigate(page) updates both hash + React state atomically
-// popstate listener handles browser back/forward
+// navigate(page) adds page to visitedRef.current, updates hash + React state atomically
+// hashchange listener handles browser back/forward
+// visitedRef (useRef<Set>) tracks which pages have been visited — lazy-mount pattern
 ```
 
 ### Plan display constants (PLAN_DETAILS in App.jsx)
@@ -603,11 +605,31 @@ git add . && git commit -m "..." && git push
 **Volume:** Mount at `/data` on Railway so SQLite persists across deploys.
 Both `data/registry.db` and `data/citations.db` live in the same `/data` volume dir.
 
+### ⚠️ Dockerfile: Do NOT add `USER appuser` (non-root)
+Railway mounts volumes at **runtime** with root ownership. A non-root user (e.g. `appuser` UID 1000) cannot write to `/app/data/` even if you `chown` at build time, because the volume mount overwrites the directory at runtime. This caused a full 11-hour outage (commit `8884c6b` fixed it). The container must run as root for Railway volume compatibility. Revisit only when migrating to a managed Postgres database.
+
 ---
 
-## Change Log (2026-03-02 — 2026-03-04)
+## Change Log (2026-03-02 — 2026-03-05)
 
-### 2026-03-04 — Content & install guide (current session)
+### 2026-03-05 — Full QA pass + tab state persistence (commit `531fe4e`)
+| File | Change |
+|---|---|
+| `dashboard/src/App.jsx` | Lazy-mount + `display:none` tab pattern — pages stay mounted after first visit, no state loss on tab switch |
+| `dashboard/src/App.jsx` | CitationTrackerPage: `isPro = true` hardcoded → restored `['pro','agency','enterprise'].includes(plan)` |
+| `dashboard/src/App.jsx` | ContentDoctorPage: added `'agency'` to `isPaid` check (agency was getting free-tier paywall) |
+| `dashboard/src/App.jsx` | TenantsPage `planBadge`: added `starter: 'badge-yellow'` and `agency: 'badge-purple'` |
+| `dashboard/src/App.jsx` | ScorePage: added retry card when `score === null` after silent API failure |
+| `dashboard/src/App.jsx` | GeoPage: added retry card when `geo === null` after silent API failure |
+| `dashboard/src/App.jsx` | Fixed LS_URLS comments: `$90/yr → $79/yr`, `$290/yr → $249/yr` |
+| `dashboard/src/App.jsx` | Added `useRef` import; `VALID_PAGES` now includes `'citations'` |
+
+### 2026-03-05 — Dockerfile non-root user outage fix (commit `8884c6b`)
+| File | Change |
+|---|---|
+| `Dockerfile` | Removed `USER appuser` / `useradd` / `chown` lines — container must run as root for Railway volume compatibility. Non-root user couldn't write to Railway-mounted `/app/data/` (root-owned at runtime), causing startup crash → 11-hour 502 outage |
+
+### 2026-03-04 — Content & install guide (commits `c984a58`)
 | File | Change |
 |---|---|
 | `static/galuli.js` | v3.2.0: SPA nav (pushState/popstate), data-key attribute, hostname-based script detection, 250ms render delay |
@@ -623,13 +645,19 @@ All critical issues fixed before launch. Committed in two batches:
 - `efb0a7b` — 8 critical/high bugs fixed
 - `a7b73be` — 6 UX/polish fixes
 
-## Bug Fix Log (2026-03-02 — 2026-03-03)
+## Bug Fix Log (2026-03-02 — 2026-03-05)
 
-All critical issues fixed before launch. Committed in two batches:
-- `efb0a7b` — 8 critical/high bugs fixed
-- `a7b73be` — 6 UX/polish fixes
+### QA fixes (531fe4e) — 2026-03-05
+| # | File | Bug | Fix |
+|---|---|---|---|
+| 1 | `dashboard/src/App.jsx` | Tab switch unmounts page component → all fetched data lost, re-fetch on return → "shows then disappears" | Replaced `pages[page]` with lazy-mount + `display:none` (useRef Set of visited pages) |
+| 2 | `dashboard/src/App.jsx` | `CitationTrackerPage`: `isPro = true` hardcoded — all users (including free) had Pro access | Restored `['pro','agency','enterprise'].includes(plan)` |
+| 3 | `dashboard/src/App.jsx` | `ContentDoctorPage`: `'agency'` missing from `isPaid` — agency users hit the free paywall | Added `'agency'` to `isPaid` array |
+| 4 | `dashboard/src/App.jsx` | `TenantsPage` `planBadge`: `starter` and `agency` not mapped → shown as grey badge | Added `starter: 'badge-yellow'`, `agency: 'badge-purple'` |
+| 5 | `dashboard/src/App.jsx` | `ScorePage`/`GeoPage`: silent `.catch(() => {})` on API failure → page showed nothing | Added retry card for `score === null` and `geo === null` states |
+| 6 | `Dockerfile` | `USER appuser` (non-root) → Railway volume mounted root-owned at runtime → SQLite unwritable → startup crash → 502 for 11h | Removed non-root user; documented why root is required for Railway volumes |
 
-### Critical fixes (efb0a7b)
+### Critical fixes (efb0a7b) — 2026-03-02
 | # | File | Bug | Fix |
 |---|---|---|---|
 | 1 | `static/galuli.js` | `window.galui = window.galuli` inside object literal → syntax error, broke every customer install | Moved alias after closing `};` |
@@ -641,15 +669,15 @@ All critical issues fixed before launch. Committed in two batches:
 | 7 | `app/api/routes/citations.py` | Pro gate was commented out → free users had full Citation Tracker access | Restored `_require_pro()` guard |
 | 8 | `dashboard/src/App.jsx` | TenantsPage plan dropdown missing `starter`/`agency`, Pro showed wrong limits | Added all plans with correct limits |
 
-### Polish fixes (a7b73be)
+### Polish fixes (a7b73be) — 2026-03-03
 | # | File | Issue | Fix |
 |---|---|---|---|
-| 5 | `push.py` / `score.py` | push.py had dead score/badge/suggestions routes shadowing score.py | Removed dead routes from push.py; score.py is now authoritative |
-| 6 | `admin.py` | `DELETE /wipe-all` had no auth check — anyone could wipe the DB | Now requires master key when `REGISTRY_API_KEY` is set |
-| 7 | `scheduler.py` + `tenant.py` | `requests_today` counter never reset — daily limits meaningless | Added `reset_daily_usage()` + midnight UTC cron job |
-| 8 | `vite.config.js` | 505KB monolithic bundle, warned on every build | Split `react`+`react-dom` into `vendor-react` chunk; raised limit to 600KB |
-| 9 | `push.py` | Docstring said `POST /api/v1/ingest/push` (wrong path, wrong snippet name) | Fixed to `POST /api/v1/push` + `galuli.js` |
-| 10 | `CLAUDE.md` | Two-DB architecture undocumented | Documented both DBs with paths and contents |
+| 1 | `push.py` / `score.py` | push.py had dead score/badge/suggestions routes shadowing score.py | Removed dead routes from push.py; score.py is now authoritative |
+| 2 | `admin.py` | `DELETE /wipe-all` had no auth check — anyone could wipe the DB | Now requires master key when `REGISTRY_API_KEY` is set |
+| 3 | `scheduler.py` + `tenant.py` | `requests_today` counter never reset — daily limits meaningless | Added `reset_daily_usage()` + midnight UTC cron job |
+| 4 | `vite.config.js` | 505KB monolithic bundle, warned on every build | Split `react`+`react-dom` into `vendor-react` chunk; raised limit to 600KB |
+| 5 | `push.py` | Docstring said `POST /api/v1/ingest/push` (wrong path, wrong snippet name) | Fixed to `POST /api/v1/push` + `galuli.js` |
+| 6 | `CLAUDE.md` | Two-DB architecture undocumented | Documented both DBs with paths and contents |
 
 ---
 
@@ -659,3 +687,36 @@ All critical issues fixed before launch. Committed in two batches:
 2. **Starter annual URL** — create "$79/yr" variant in LS (variant ID 1353121 exists), paste checkout URL into `LS_URLS.starter_annual` in `App.jsx`
 3. **Manual QA** — test galuli.js snippet install end-to-end on each major platform type (HTML, WordPress, Next.js SPA), LS checkout flow, magic link email delivery
 4. **Install guide nav links** — consider adding /install link to the nav in About.jsx, Roadmap.jsx, Blog.jsx navbars (currently only accessible via direct URL or from the dashboard SnippetPage)
+5. **Deploy checklist** — add a pre-push checklist to catch regressions: plan gates correct, no hardcoded keys/flags, LS URLs correct, build passes
+
+---
+
+## Known Technical Debt
+
+These are not urgent bugs but are real risks as the product scales. Documented here so they don't get forgotten.
+
+### 🔴 SQLite on Railway (highest priority before first paying customers)
+- Single point of failure — no replication, no managed backups
+- Volume is single-region
+- Already caused one 11h outage (Dockerfile non-root user + Railway volume mount issue)
+- **Fix:** Migrate to Railway Postgres or Neon. Schema is simple; migration is a few hours of work now vs. a data-loss crisis later.
+
+### 🟠 App.jsx is one file at ~3,280 lines
+- Every bug hunt requires reading the file in 100-line chunks with offset/limit (too big to load at once)
+- The `isPro = true` and tab-persistence bugs went unnoticed partly because of this
+- **Fix:** Split into one file per page component (OverviewPage.jsx, ScorePage.jsx, etc.) — each ~200–400 lines. Keep shared components in a `components/` folder.
+
+### 🟡 Starter plan limit of 1 site is aggressive
+- Most small businesses have staging + production, or multiple projects
+- May be blocking conversions from Free → Starter
+- Consider raising to 3 sites, or adding a $14/mo "Growth" tier between Starter and Pro
+
+### 🟡 Citation Tracker data quality
+- Perplexity citations are reasonably traceable via Sonar API
+- ChatGPT and Claude don't reliably expose citation sources in API responses
+- Users expecting "ChatGPT cited you 5 times this week" will be disappointed when data is sparse
+- **Fix:** Update Citation Tracker UI copy to set accurate expectations per engine; consider "training data citation" vs. "live search citation" distinction
+
+### 🟡 No pre-deploy test suite
+- Plan gates, API route auth, snippet endpoint availability all discovered through manual use or breakage in production
+- Minimum viable: a pytest file that hits `/health`, `/api/v1/push` (mock tenant key), `/api/v1/score/{domain}`, and checks plan gate on `/api/v1/citations/{domain}` returns 403 for free tier
