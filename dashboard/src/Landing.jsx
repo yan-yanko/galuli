@@ -80,7 +80,6 @@ function LandingNav({ onSignIn }) {
           <a href="/about"   className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>About</a>
           <a href="/pricing" className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>Pricing</a>
         </div>
-        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }} onClick={() => onSignIn && onSignIn()}>Sign in</button>
         <a href="/pricing" className="btn btn-primary btn-sm" style={{ marginLeft: 6 }}>Join the beta →</a>
       </div>
     </nav>
@@ -474,7 +473,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
                   placeholder="yourwebsite.com"
                   style={{ flex: 1, minWidth: 200 }}
                 />
-                <button type="submit" className="btn btn-primary">Get my score →</button>
+                <button type="submit" className="btn btn-primary">Join the beta →</button>
               </form>
             )}
             {stage === 'error' && (
