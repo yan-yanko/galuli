@@ -446,7 +446,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>readable by AI.</span>
             </h1>
             <p style={{ fontSize: 18, color: 'var(--subtle)', lineHeight: 1.7, marginBottom: 28, maxWidth: 480 }}>
-              Billions of people now get answers from ChatGPT, Claude, and Perplexity instead of clicking links. If AI can't read your site, you don't exist to them. Galuli makes your site fully accessible to every AI system — with one line of code.
+              Other GEO tools give you a checklist. Galuli does it automatically. One script tag generates your llms.txt, registers your site with AI agent frameworks, and tracks which AI crawlers visit you in real time — with a live readability score across ChatGPT, Claude, Perplexity, Gemini, Grok, and Llama.
             </p>
 
             {/* Bullets */}
