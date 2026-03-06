@@ -517,6 +517,21 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         </div>
       </div>
 
+      {/* ── Third-party proof ── */}
+      <div style={{ borderBottom: '1px solid var(--border)', padding: '18px 32px' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ width: 3, height: 32, background: 'var(--accent)', borderRadius: 2, flexShrink: 0 }} />
+          <p style={{ fontSize: 14, color: 'var(--subtle)', lineHeight: 1.6, margin: 0 }}>
+            <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Reuters (1.5M searches/mo) outranks Fox News (42M) in AI citations.</strong>
+            {' '}Brand scale doesn't predict AI visibility — structure and authority do.
+          </p>
+          <a href="https://www.similarweb.com/corp/2026-genai-brand-visibility-index/" target="_blank" rel="noopener noreferrer"
+            style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            SimilarWeb 2026 GenAI Index ↗
+          </a>
+        </div>
+      </div>
+
       {/* ── How it works ── */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 32px' }}>
         <div style={{ marginBottom: 32 }}>
