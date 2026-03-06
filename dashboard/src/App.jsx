@@ -379,7 +379,7 @@ function OverviewPage({ setPage, setPendingScanDomain }) {
       regs.forEach(reg => {
         api.getScore(reg.domain)
           .then(s => setScores(prev => ({ ...prev, [reg.domain]: s })))
-          .catch(() => { })
+          .catch(() => setScores(prev => ({ ...prev, [reg.domain]: 'failed' })))
       })
     }).finally(() => setLoading(false))
   }, [])
@@ -470,7 +470,7 @@ function OverviewPage({ setPage, setPendingScanDomain }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
           {[
             { label: 'Sites indexed', value: registries.length, color: 'var(--accent)' },
-            { label: 'Avg AI score', value: avgScore !== null ? `${avgScore}/100` : '—', color: avgScore >= 70 ? 'var(--green)' : avgScore >= 50 ? 'var(--yellow)' : 'var(--red)' },
+            { label: 'Avg AI score', value: avgScore !== null ? `${avgScore}/100` : '—', color: avgScore === null ? 'var(--muted)' : avgScore >= 70 ? 'var(--green)' : avgScore >= 50 ? 'var(--yellow)' : 'var(--red)' },
             { label: 'WebMCP sites', value: scores_arr.filter(s => s?.dimensions?.webmcp_compliance?.webmcp_enabled).length, color: 'var(--purple)' },
           ].map(c => (
             <div key={c.label} className="stat-card">
@@ -490,15 +490,28 @@ function OverviewPage({ setPage, setPendingScanDomain }) {
           </div>
           {registries.map(r => {
             const s = scores[r.domain]
-            const scoreColor = s ? (s.total >= 70 ? 'var(--green)' : s.total >= 50 ? 'var(--yellow)' : 'var(--red)') : 'var(--muted)'
+            const scoreFailed = s === 'failed'
+            const scoreLoaded = s && s !== 'failed'
+            const scoreColor = scoreLoaded ? (s.total >= 70 ? 'var(--green)' : s.total >= 50 ? 'var(--yellow)' : 'var(--red)') : 'var(--muted)'
             return (
               <div key={r.domain} className="card" style={{ padding: '14px 18px' }}>
                 <div className="flex center gap-16 wrap">
-                  {s ? <ScoreRing score={s.total} size={56} /> : <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="spinner" style={{ width: 16, height: 16 }} /></div>}
+                  {scoreLoaded
+                    ? <ScoreRing score={s.total} size={56} />
+                    : scoreFailed
+                      ? <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}
+                          title="Retry score"
+                          onClick={() => {
+                            setScores(prev => { const n = { ...prev }; delete n[r.domain]; return n })
+                            api.getScore(r.domain).then(sc => setScores(prev => ({ ...prev, [r.domain]: sc }))).catch(() => setScores(prev => ({ ...prev, [r.domain]: 'failed' })))
+                          }}>↺</div>
+                      : <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="spinner" style={{ width: 16, height: 16 }} /></div>
+                  }
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{r.domain}</div>
-                    {s && <div style={{ fontSize: 13, color: scoreColor }}>{s.label} · {s.total}/100 · Grade {s.grade}</div>}
-                    {s?.suggestions?.[0]?.issue && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>💡 {s.suggestions[0].issue}</div>}
+                    {scoreLoaded && <div style={{ fontSize: 13, color: scoreColor }}>{s.label} · {s.total}/100 · Grade {s.grade}</div>}
+                    {scoreFailed && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Score unavailable — click ↺ to retry</div>}
+                    {scoreLoaded && s?.suggestions?.[0]?.issue && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>💡 {s.suggestions[0].issue}</div>}
                   </div>
                   <div className="flex gap-6 wrap" style={{ flexShrink: 0, alignItems: 'center' }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => setPage('score')}>Score</button>

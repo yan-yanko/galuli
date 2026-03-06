@@ -38,6 +38,8 @@ PUBLIC_PREFIXES = (
     "/pricing",
     "/auth",           # magic link verify page
     "/.well-known/",   # all well-known discovery files
+    "/api/v1/score/",  # score + badge + suggestions — read-only, registry is already public
+    "/api/v1/geo/",    # per-LLM citation readiness — read-only
 )
 # Self-service signup + auth + Stripe webhook: always public
 PUBLIC_POST_EXACT = {
