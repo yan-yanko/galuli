@@ -446,7 +446,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>not just Google.</span>
             </h1>
             <p style={{ fontSize: 18, color: 'var(--subtle)', lineHeight: 1.7, marginBottom: 28, maxWidth: 480 }}>
-              AI search now drives more qualified traffic than Google Ads, at 5x the conversion rate. Galuli gets your site into those answers automatically. One script tag. No backend changes. Works across ChatGPT, Claude, Perplexity, Gemini, Grok, and Llama.
+              Other tools track where you rank in AI answers. Galuli fixes why you don't. One script tag auto-generates your llms.txt, audits your robots.txt, and registers you with AI agent frameworks — automatically, across all 6 AI engines.
             </p>
 
             {/* Bullets */}
@@ -501,7 +501,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '20px 32px' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, textAlign: 'center' }}>
           <AnimatedStat target={14.2} format={v => `${v.toFixed(1)}%`}  label="AI traffic conversion rate"   sub="vs 2.8% traditional search" />
-          <AnimatedStat target={750}  format={v => `$${Math.round(v)}B`} label="AI-mediated commerce by 2028" sub="Gartner estimate" />
+          <AnimatedStat target={63}   format={v => `${Math.round(v)}%`}  label="of purchases start with AI" sub="not Google" />
           <AnimatedStat target={35}   format={v => `+${Math.round(v)}%`} label="more AI citations from GEO"   sub="Princeton GEO-bench" />
           <AnimatedStat target={76.4} format={v => `${v.toFixed(1)}%`}  label="of AI-cited pages"            sub="updated in last 30 days" />
         </div>
@@ -532,12 +532,53 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         </div>
       </div>
 
+      {/* ── Contrast section ── */}
+      <div style={{ borderBottom: '1px solid var(--border)', padding: '48px 32px', background: 'var(--surface)' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div className="eyebrow">Why Galuli is different</div>
+            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.1 }}>Most tools measure AI visibility.<br />Galuli creates it.</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: 0, alignItems: 'start' }}>
+            <div style={{ paddingRight: 32 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>Other GEO tools</div>
+              {[
+                'Show you a dashboard',
+                'Tell you where you rank',
+                'Leave the fixing to you',
+                'Require manual setup and content work',
+              ].map(item => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 13, flexShrink: 0 }}>✗</span>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: 'var(--border)', alignSelf: 'stretch' }} />
+            <div style={{ paddingLeft: 32 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>Galuli</div>
+              {[
+                'Fixes the underlying problem',
+                'Auto-generates llms.txt + WebMCP',
+                'Audits robots.txt, schema markup, freshness',
+                'One script tag — free to start',
+              ].map(item => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <span style={{ color: 'var(--green)', fontSize: 13, flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: 13, color: 'var(--text)' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── How it works ── */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 32px' }}>
         <div style={{ marginBottom: 32 }}>
           <div className="eyebrow">How it works</div>
-          <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>AI accessibility in three steps</h2>
-          <p style={{ fontSize: 16, color: 'var(--subtle)' }}>From zero to fully AI-readable in under 5 minutes</p>
+          <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>From invisible to cited in three steps</h2>
+          <p style={{ fontSize: 16, color: 'var(--subtle)' }}>One script tag. Galuli handles everything else.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--border)' }}>
           {[
