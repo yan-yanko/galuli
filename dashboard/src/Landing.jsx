@@ -442,19 +442,19 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>· Limited access · Every signup reviewed personally</div>
             </div>
             <h1 style={{ fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 22, color: 'var(--text)' }}>
-              Get cited by AI,<br />
-              <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>not just Google.</span>
+              AI can't cite you<br />
+              <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>if it can't find you.</span>
             </h1>
             <p style={{ fontSize: 18, color: 'var(--subtle)', lineHeight: 1.7, marginBottom: 28, maxWidth: 480 }}>
-              Other tools track where you rank in AI answers. Galuli fixes why you don't. One script tag auto-generates your llms.txt, audits your robots.txt, and registers you with AI agent frameworks — automatically, across all 6 AI engines.
+              Before AI recommends you, it resolves whether you exist as a known entity. Most B2B sites fail that check silently. Galuli shows you exactly why — and fixes it.
             </p>
 
             {/* Bullets */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
               {[
-                { label: '5x higher conversion.', detail: 'AI-referred traffic converts at 14.2% vs 2.8% from organic search.' },
-                { label: 'One script tag.', detail: 'No backend changes. Galuli handles llms.txt, WebMCP, and monitoring automatically.' },
-                { label: 'All 6 AI engines.', detail: 'ChatGPT, Claude, Perplexity, Gemini, Grok, and Llama — simultaneously.' },
+                { label: 'Entity check.', detail: 'See if AI systems can resolve who you are — Wikidata, Schema.org, directories, robots.txt.' },
+                { label: 'Retrieval audit.', detail: 'Check if your content is structured for how AI retrieval actually works.' },
+                { label: 'One script tag.', detail: 'Install Galuli for continuous monitoring. Free to start, no backend changes.' },
               ].map(({ label, detail }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15 }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(94,106,210,0.12)', border: '1px solid rgba(94,106,210,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 800, fontSize: 10, flexShrink: 0, marginTop: 1 }}>✓</div>
@@ -537,16 +537,17 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div className="eyebrow">Why Galuli is different</div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.1 }}>Most tools measure AI visibility.<br />Galuli creates it.</h2>
+            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.1 }}>Entity resolution happens<br />before retrieval.</h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 12 }}>Research across 88 sources: AI confirms you exist as a known entity before it ever retrieves your content. Most tools skip this entirely.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: 0, alignItems: 'start' }}>
             <div style={{ paddingRight: 32 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>Other GEO tools</div>
               {[
-                'Show you a dashboard',
-                'Tell you where you rank',
-                'Leave the fixing to you',
-                'Require manual setup and content work',
+                'Optimize your content',
+                'Track where you rank',
+                'Skip the entity resolution layer',
+                'Advice based on guesswork, not architecture',
               ].map(item => (
                 <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                   <span style={{ color: 'var(--muted)', fontSize: 13, flexShrink: 0 }}>✗</span>
@@ -558,10 +559,10 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
             <div style={{ paddingLeft: 32 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>Galuli</div>
               {[
-                'Fixes the underlying problem',
-                'Auto-generates llms.txt + WebMCP',
-                'Audits robots.txt, schema markup, freshness',
-                'One script tag — free to start',
+                'Checks Layer 1: are you a resolved entity?',
+                'Audits Schema.org, Wikidata, robots.txt, directories',
+                'Checks Layer 4: is your content structured for retrieval?',
+                'Built on The Stack — 88 sources, real architecture',
               ].map(item => (
                 <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                   <span style={{ color: 'var(--green)', fontSize: 13, flexShrink: 0 }}>✓</span>
@@ -582,9 +583,9 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--border)' }}>
           {[
-            { step: '01', title: 'See your AI readability score', desc: 'Enter your URL. Galuli crawls every page, runs a 4-pass AI comprehension pipeline, and tells you exactly how well each LLM can read and understand your site — in under 2 minutes.' },
-            { step: '02', title: 'Add one script tag', desc: 'Copy one line into your site\'s <head>. Galuli auto-generates your llms.txt, registers your capabilities with WebMCP, and starts tracking which AI systems visit you.', tag: '30 seconds to install' },
-            { step: '03', title: 'Every AI can read you now', desc: 'ChatGPT, Claude, Perplexity, Gemini, Grok — they can all read, understand, and cite your site. Your readability score updates automatically as your content changes.' },
+            { step: '01', title: 'Run the Entity Check', desc: 'Enter any URL. Galuli checks Layer 1 instantly: Wikidata entity, Schema.org markup, robots.txt AI access, directory presence. No signup, no install. See exactly what AI systems see when they try to resolve who you are.' },
+            { step: '02', title: 'See what\'s blocking you', desc: 'Galuli shows each check with a pass/fail/warn status and a direct fix link. Entity missing from Wikidata? Here\'s how. Blocking GPTBot in robots.txt? Here\'s the 2-line fix.', tag: 'Results in ~5 seconds' },
+            { step: '03', title: 'Install for continuous monitoring', desc: 'One script tag turns on Layer 4 monitoring: content retrieval audits, AI agent traffic analytics, and freshness tracking. Get alerted when a deploy accidentally breaks something.', tag: '30 seconds to install' },
           ].map(({ step, title, desc, tag }) => (
             <div key={step} className="step-card" style={{ background: 'var(--surface)', padding: '24px 24px 20px', position: 'relative', transition: 'background 0.2s ease' }}>
               {tag && <div style={{ position: 'absolute', top: 16, right: 16, fontSize: 10, background: 'rgba(94,106,210,0.1)', border: '1px solid rgba(94,106,210,0.25)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 3, fontWeight: 600 }}>{tag}</div>}
@@ -593,6 +594,45 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <p style={{ fontSize: 15, color: 'var(--subtle)', lineHeight: 1.7 }}>{desc}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Real-time AI browsing ── */}
+      <div style={{ borderBottom: '1px solid var(--border)', padding: '64px 32px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 56, alignItems: 'center' }}>
+            <div>
+              <div className="eyebrow">Real-time AI browsing</div>
+              <h2 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 16, lineHeight: 1.1 }}>
+                When Perplexity reads your site live, can it see anything?
+              </h2>
+              <p style={{ color: 'var(--subtle)', fontSize: 16, lineHeight: 1.8, marginBottom: 14 }}>
+                When someone asks Perplexity or ChatGPT a question, these AI engines browse the web in real time to find the answer. The problem: most modern websites are built with React, Next.js, or no-code tools like Lovable or Webflow. AI crawlers <strong style={{ color: 'var(--text)', fontWeight: 600 }}>don't execute JavaScript</strong> — so they land on your site and see an empty page.
+              </p>
+              <p style={{ color: 'var(--subtle)', fontSize: 16, lineHeight: 1.8, marginBottom: 24 }}>
+                Galuli solves this at the edge. A one-file Cloudflare Worker serves your full AI registry at <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontSize: 14, color: 'var(--accent)', fontFamily: 'monospace' }}>yourdomain.com/llms.txt</code> — server-rendered, no JavaScript needed, readable by every AI engine in real time.
+              </p>
+              <a href="/install" style={{ textDecoration: 'none' }}>
+                <button className="btn btn-ghost" style={{ fontSize: 13 }}>See the Cloudflare setup guide ↗</button>
+              </a>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {[
+                { who: 'Human visitor',       icon: '👤', reads: 'Your React/JS site renders fully in their browser.', result: '✓ Sees everything',  ok: true  },
+                { who: 'AI crawler (no JS)',   icon: '🤖', reads: 'Visits your domain — sees empty <div id="root">.',  result: '✗ Sees nothing',   ok: false },
+                { who: 'AI crawler + Galuli',  icon: '⬡',  reads: 'Hits /llms.txt — gets your full structured registry.', result: '✓ Fully readable', ok: true  },
+              ].map(({ who, icon, reads, result, ok }, i) => (
+                <div key={who} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 12, alignItems: 'center', padding: '16px 18px', borderBottom: i < 2 ? '1px solid var(--border)' : 'none', background: ok ? 'var(--surface)' : 'rgba(229,72,77,0.04)' }}>
+                  <span style={{ fontSize: 16 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{who}</div>
+                    <div style={{ fontSize: 12, color: 'var(--subtle)' }}>{reads}</div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ok ? 'var(--green)' : 'var(--red)', whiteSpace: 'nowrap' }}>{result}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -267,7 +267,7 @@ const NAV_SECTIONS = [
     label: 'INSIGHTS',
     items: [
       { id: 'overview',  label: 'Overview',   icon: '⊞', tooltip: 'Your AI accessibility dashboard — scan sites, track scores, and monitor overall progress.' },
-      { id: 'score',     label: 'AI Score',   icon: '◎', tooltip: '0–100 AI Readiness Score across 5 dimensions: Content, Structure, Machine Signals, Authority, and Freshness.' },
+      { id: 'score',     label: 'AI Score',   icon: '◎', tooltip: '0–100 AI Visibility Score. Built on The Stack: Entity Establishment (L1, 35pts), Content Retrieval (L4, 40pts), Freshness (25pts).' },
       { id: 'geo',       label: 'GEO',        icon: '◈', tooltip: 'Generative Engine Optimization — per-LLM citation readiness score for ChatGPT, Claude, Perplexity, Gemini, Grok, and Llama.' },
       { id: 'analytics', label: 'Analytics',  icon: '↗', tooltip: 'AI agent traffic analytics — which LLMs crawl your site, which pages they read, and how traffic trends over time.' },
     ],
@@ -750,8 +750,7 @@ function IngestPage() {
 function IndexResult({ result }) {
   const { registry, score } = result
   const gradeColor = score.total >= 70 ? 'var(--green)' : score.total >= 50 ? 'var(--yellow)' : 'var(--red)'
-  const dimLabels = { content_coverage: 'Content Coverage', structure_quality: 'Structure Quality', freshness: 'Freshness', webmcp_compliance: 'WebMCP Compliance', output_formats: 'Output Formats' }
-  const dimColors = { content_coverage: 'var(--accent2)', structure_quality: 'var(--green)', freshness: 'var(--blue)', webmcp_compliance: 'var(--purple)', output_formats: 'var(--yellow)' }
+  const dimColors = { 'Entity Establishment': 'var(--accent2)', 'Content Retrieval': 'var(--green)', 'Freshness': 'var(--blue)' }
   const priorityColor = { high: 'var(--red)', medium: 'var(--yellow)', low: 'var(--muted)' }
 
   return (
@@ -781,7 +780,7 @@ function IndexResult({ result }) {
         {Object.entries(score.dimensions || {}).map(([key, dim]) => (
           <div key={key}>
             <div className="flex between" style={{ fontSize: 13, marginBottom: 6 }}>
-              <span style={{ fontWeight: 500 }}>{dimLabels[key] || key}</span>
+              <span style={{ fontWeight: 500 }}>{key}</span>
               <span style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{dim.score}<span style={{ color: 'var(--border2)' }}>/{dim.max}</span></span>
             </div>
             <div style={{ background: 'var(--border)', borderRadius: 4, height: 6 }}>
@@ -905,21 +904,23 @@ function ScorePage({ pendingDomain, clearPending }) {
     return () => clearInterval(interval)
   }, [pendingDomain])
 
-  const dimLabels = { content_coverage: 'Content Coverage', structure_quality: 'Structure Quality', freshness: 'Freshness', webmcp_compliance: 'WebMCP Compliance', output_formats: 'Output Formats' }
-  const dimColors = { content_coverage: 'var(--accent2)', structure_quality: 'var(--green)', freshness: 'var(--blue)', webmcp_compliance: 'var(--purple)', output_formats: 'var(--yellow)' }
+  // The Stack framework — 3 dimensions mapped to L1 + L4 + cross-layer freshness
+  const dimColors = {
+    'Entity Establishment': 'var(--accent2)',
+    'Content Retrieval':    'var(--green)',
+    'Freshness':            'var(--blue)',
+  }
   const dimDesc = {
-    content_coverage: 'How well your site\'s capabilities, use cases, and value proposition are extracted and described. Low score = AI agents can\'t explain what you do.',
-    structure_quality: 'Completeness of structured data: pricing, API info, schema.org markup, headings hierarchy. Low score = AI gives incomplete or inaccurate answers about your product.',
-    freshness: 'How recently your registry was updated relative to your actual site. Stale data = AI agents cite outdated information.',
-    webmcp_compliance: 'Whether the Galuli snippet is installed and WebMCP tools are registered. Without this, AI agents can\'t interact with your site\'s forms or actions.',
-    output_formats: 'Whether your llms.txt, JSON registry, and AI plugin manifest are generated and accessible. These are what AI crawlers actually fetch.',
+    'Entity Establishment': 'L1 — Does AI know you exist? Schema.org, robots.txt, Wikidata, content identity. Entity resolution happens before retrieval.',
+    'Content Retrieval':    'L4 — Can your content be retrieved and cited? Coverage, capability density, AI comprehension score, monitoring depth.',
+    'Freshness':            '76.4% of AI-cited pages were updated within 30 days. Stale data means AI cites outdated or inaccurate information.',
   }
   const priorityColor = { high: 'var(--red)', medium: 'var(--yellow)', low: 'var(--muted)' }
 
   return (
     <div className="flex col gap-24">
       <div className="flex between center wrap gap-12">
-        <PageHeader title="AI Readability Score" subtitle="How well can AI systems read, understand, and trust your site?" />
+        <PageHeader title="AI Visibility Score" subtitle="Built on The Stack — entity resolution + content retrieval + freshness." />
         {registries.length > 0 && (
           <select value={selected} onChange={e => loadScore(e.target.value)} style={{ width: 'auto', minWidth: 200 }}>
             {registries.map(r => <option key={r.domain} value={r.domain}>{r.domain}</option>)}
@@ -955,15 +956,14 @@ function ScorePage({ pendingDomain, clearPending }) {
       {!polling && registries.length === 0 && (
         <TabExplainer
           icon="◈"
-          title="AI Readiness Score — understand exactly how AI sees your site"
-          description="The AI Readiness Score measures how well any AI agent can find, understand, and use your site. It's a 0–100 score across 5 dimensions. Scan a site from Overview to see yours."
+          title="AI Visibility Score — built on The Stack framework"
+          description="A 0–100 score across 3 dimensions mapped to the AI visibility architecture (88 sources). Entity resolution happens before retrieval. Scan a site from Overview to see yours."
           features={[
-            { icon: '📝', label: 'Content Coverage (0–25)', sub: 'Are your capabilities, use cases, and value prop clearly documented?' },
-            { icon: '🏗️', label: 'Structure Quality (0–20)', sub: 'Pricing tiers, API docs, auth methods, SDK info' },
-            { icon: '📡', label: 'Machine Signals (0–20)', sub: 'llms.txt, ai-plugin.json, WebMCP, confidence score' },
-            { icon: '🏛️', label: 'Authority (0–20)', sub: 'Docs URL, support URL, pricing page, status page' },
-            { icon: '⏱️', label: 'Freshness (0–15)', sub: 'Pages crawled + whether snippet monitors live changes' },
-            { icon: '🏷️', label: 'Embeddable badge', sub: 'Show visitors you\'re AI-ready — auto-updates with score' },
+            { icon: '🏛️', label: 'Entity Establishment (0–35) — L1', sub: 'Are you a resolved entity? Schema.org, robots.txt, content identity.' },
+            { icon: '📡', label: 'Content Retrieval (0–40) — L4', sub: 'Pages crawled, capability density, AI comprehension score, monitoring depth.' },
+            { icon: '⏱️', label: 'Freshness (0–25)', sub: '76.4% of AI-cited pages were updated within 30 days.' },
+            { icon: '🏷️', label: 'Embeddable badge', sub: 'Show your AI Visibility Score — auto-updates with score.' },
+            { icon: '🔍', label: 'Entity Check tool', sub: 'Live Wikidata, directory, and schema audit — no install needed.' },
           ]}
         />
       )}
@@ -1002,11 +1002,11 @@ function ScorePage({ pendingDomain, clearPending }) {
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Score scale</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[
-                { range: '90–100', grade: 'A+', color: 'var(--green)', label: 'Elite — fully AI-optimized' },
-                { range: '70–89', grade: 'B', color: 'var(--blue)', label: 'Good — minor improvements needed' },
-                { range: '50–69', grade: 'C', color: 'var(--yellow)', label: 'Average — AI may miss key info' },
-                { range: '30–49', grade: 'D', color: 'var(--red)', label: 'Poor — high invisibility risk' },
-                { range: '0–29', grade: 'F', color: '#991b1b', label: 'Not readable by AI' },
+                { range: '85–100', grade: 'A', color: 'var(--green)', label: 'Strong AI Visibility' },
+                { range: '70–84',  grade: 'B', color: 'var(--blue)',  label: 'Good AI Visibility' },
+                { range: '55–69',  grade: 'C', color: 'var(--yellow)', label: 'Partial AI Visibility' },
+                { range: '40–54',  grade: 'D', color: 'var(--red)',   label: 'Weak AI Visibility' },
+                { range: '0–39',   grade: 'F', color: '#991b1b',      label: 'Not Visible to AI' },
               ].map(({ range, grade, color, label }) => (
                 <div key={grade} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', flex: '1 1 160px' }}>
                   <div style={{ width: 24, height: 24, borderRadius: 6, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'white', fontSize: 13, flexShrink: 0 }}>{grade}</div>
@@ -1021,32 +1021,25 @@ function ScorePage({ pendingDomain, clearPending }) {
 
           {/* Breakdown */}
           <div className="card flex col gap-16">
-            <div style={{ fontWeight: 700, fontSize: 13 }}>Score breakdown</div>
+            <div className="flex between center">
+              <div style={{ fontWeight: 700, fontSize: 13 }}>Score breakdown — The Stack</div>
+              <a href="https://galuli.io/blog/what-is-geo" style={{ fontSize: 12, color: 'var(--accent)' }}>Framework explained ↗</a>
+            </div>
             {Object.entries(score.dimensions || {}).map(([key, dim]) => (
               <div key={key} className="flex col gap-6">
                 <div className="flex between center" style={{ fontSize: 13 }}>
-                  <div>
-                    <span style={{ fontWeight: 600 }}>{dimLabels[key] || key}</span>
-                    <span style={{ color: 'var(--muted)', fontSize: 13, marginLeft: 8 }}>{dimDesc[key]}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 600 }}>{key}</span>
+                    {dim.layer && <span style={{ fontSize: 10, background: 'rgba(94,106,210,0.1)', border: '1px solid rgba(94,106,210,0.2)', color: 'var(--accent)', padding: '1px 6px', borderRadius: 3, marginLeft: 8, fontWeight: 600 }}>{dim.layer}</span>}
+                    <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{dimDesc[key] || dim.description}</div>
                   </div>
-                  <span style={{ color: 'var(--subtle)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  <span style={{ color: 'var(--subtle)', fontVariantNumeric: 'tabular-nums', fontWeight: 600, marginLeft: 16, flexShrink: 0 }}>
                     {dim.score}<span style={{ color: 'var(--muted)', fontWeight: 400 }}>/{dim.max}</span>
                   </span>
                 </div>
                 <div style={{ background: 'var(--border)', borderRadius: 4, height: 7 }}>
                   <div style={{ height: 7, borderRadius: 4, background: dimColors[key] || 'var(--accent2)', width: `${(dim.score / dim.max) * 100}%`, transition: 'width 0.6s' }} />
                 </div>
-                {key === 'webmcp_compliance' && (
-                  <div className="flex gap-16" style={{ fontSize: 13, color: 'var(--muted)' }}>
-                    <span>{dim.webmcp_enabled ? '✓ WebMCP active' : '○ WebMCP pending (install snippet)'}</span>
-                    {dim.tools_registered > 0 && <span>{dim.tools_registered} tools</span>}
-                  </div>
-                )}
-                {key === 'freshness' && dim.age_days !== null && (
-                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                    Last updated {dim.age_days === 0 ? 'today' : `${dim.age_days} day${dim.age_days !== 1 ? 's' : ''} ago`}
-                  </div>
-                )}
               </div>
             ))}
           </div>

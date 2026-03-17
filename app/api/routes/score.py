@@ -16,154 +16,186 @@ router = APIRouter()
 
 def _compute_score(registry) -> dict:
     """
-    Derive an AI Readiness Score (0-100) from the registry.
+    AI Visibility Score (0-100) built on The Stack framework.
 
-    5 dimensions:
-      1. Content Coverage   (0-25) — number of capabilities documented
-      2. Structure Quality  (0-20) — schema completeness (pricing, integration, reliability)
-      3. Machine Signals    (0-20) — llms.txt, ai-plugin.json, WebMCP, confidence score
-      4. Authority          (0-20) — docs URL, support URL, pricing page, SLA
-      5. Freshness          (0-15) — pages crawled + source
+    3 dimensions mapped to The Stack (4 layers, 3 mechanisms):
+      1. Entity Establishment  (0-35) — L1: Are you a resolved entity?
+                                        Schema.org, robots.txt, Wikidata proxy, description depth
+      2. Content Retrieval     (0-40) — L4: Can your content be retrieved and cited?
+                                        Pages crawled, capability density, AI comprehension score
+      3. Freshness             (0-25) — How current is your data?
 
-    Returns dict with total, grade, label, dimensions.
+    Framework: https://www.linkedin.com/pulse/how-ai-visibility-actually-works
+    Research across 88 sources. Entity resolution happens BEFORE retrieval.
     """
-    # 1. Content Coverage (0-25)
-    cap_count = len(registry.capabilities)
-    cap_score = min(25, round(cap_count / 5 * 25))
-
-    # 2. Structure Quality (0-20)
-    struct_points = 0
-    p = registry.pricing
-    if p.model and p.model != "unknown":
-        struct_points += 4
-    if p.tiers:
-        struct_points += 4
-    i = registry.integration
-    if i.api_base_url:
-        struct_points += 4
-    if i.auth_methods:
-        struct_points += 4
-    if i.sdks:
-        struct_points += 4
-    struct_score = min(20, struct_points)
-
-    # 3. Machine Signals (0-25 raw → capped at 20)
-    # Includes: llms.txt, ai-plugin, WebMCP, confidence, robots.txt, schema.org
     ai = registry.ai_metadata
-    sig_points = 0
-    if ai.llms_txt_url:
-        sig_points += 5
-    if ai.ai_plugin_url:
-        sig_points += 3
-    if ai.webmcp_enabled:
-        sig_points += 5
-    # confidence_score is 0.0-1.0
-    sig_points += round(ai.confidence_score * 4)
-    # Robots.txt: not blocking high-impact AI crawlers = +3 bonus
-    if ai.robots_has_robots_txt and not ai.robots_blocks_ai_crawlers:
-        sig_points += 3
-    elif not ai.robots_has_robots_txt:
-        sig_points += 1  # no robots.txt = neutral (permissive by default)
-    # Schema.org: structured entity context for AI grounding
+    m  = registry.metadata
+    p  = registry.pricing
+
+    # ── 1. Entity Establishment (0-35) — L1 ──────────────────────────────────
+    # K mechanism: Schema.org Organization (+10), robots.txt AI access (+8),
+    # FAQPage schema (+7), clear description (+5), reference URLs (+5)
+    entity_pts = 0
+
     if ai.schema_org_has_organization:
-        sig_points += 2
+        entity_pts += 10   # AI can resolve who you are
+    if ai.robots_has_robots_txt and not ai.robots_blocks_ai_crawlers:
+        entity_pts += 8    # AI crawlers have verified access
+    elif not ai.robots_has_robots_txt:
+        entity_pts += 4    # permissive by default, unverified
     if ai.schema_org_has_faq:
-        sig_points += 2
-    machine_score = min(20, sig_points)
-
-    # 4. Authority (0-20)
-    auth_points = 0
-    m = registry.metadata
-    if m.docs_url:
-        auth_points += 5
-    if m.support_url:
-        auth_points += 4
-    if p.pricing_page_url:
-        auth_points += 4
-    if registry.reliability.status_page_url:
-        auth_points += 4
+        entity_pts += 7    # answer-shaped content = entity has expert knowledge
     if m.description and len(m.description) > 80:
-        auth_points += 3
-    auth_score = min(20, auth_points)
+        entity_pts += 5    # entity has a clear, detailed identity
+    if m.docs_url or p.pricing_page_url:
+        entity_pts += 5    # entity has canonical reference points AI can cite
 
-    # 5. Freshness (0-15)
-    fresh_points = 0
+    entity_score = min(entity_pts, 35)
+
+    # ── 2. Content Retrieval (0-40) — L4 ─────────────────────────────────────
+    # R mechanism: Retrieval surface (pages), content density (capabilities),
+    # AI comprehension score (confidence), monitoring depth (push vs crawl)
+    retrieval_pts = 0
     pages = ai.pages_crawled
-    if pages >= 10:
-        fresh_points += 8
-    elif pages >= 5:
-        fresh_points += 5
-    elif pages >= 1:
-        fresh_points += 2
-    if ai.source == "push":
-        fresh_points += 7   # snippet-monitored = real-time
-    else:
-        fresh_points += 4   # crawl-based
-    fresh_score = min(15, fresh_points)
+    cap_count = len(registry.capabilities)
+    conf = ai.confidence_score
 
-    total = cap_score + struct_score + machine_score + auth_score + fresh_score
+    # Pages crawled = retrieval surface area (0-13pts)
+    if pages >= 10:
+        retrieval_pts += 13
+    elif pages >= 5:
+        retrieval_pts += 9
+    elif pages >= 1:
+        retrieval_pts += 4
+
+    # Capability density = structured, answer-shaped content (0-13pts)
+    if cap_count >= 5:
+        retrieval_pts += 13
+    elif cap_count >= 2:
+        retrieval_pts += 8
+    elif cap_count >= 1:
+        retrieval_pts += 4
+
+    # AI comprehension score = how well LLMs understand the content (0-10pts)
+    if conf >= 0.7:
+        retrieval_pts += 10
+    elif conf >= 0.4:
+        retrieval_pts += 6
+    elif conf > 0:
+        retrieval_pts += 3
+
+    # Real-time monitoring via snippet = always-fresh retrieval surface (0-4pts)
+    if ai.source == "push":
+        retrieval_pts += 4
+
+    retrieval_score = min(retrieval_pts, 40)
+
+    # ── 3. Freshness (0-25) ───────────────────────────────────────────────────
+    # Research: 76.4% of pages cited by AI were updated within 30 days
+    from datetime import datetime
+    fresh_pts = 0
+    last_updated = ai.last_updated
+    if last_updated:
+        try:
+            if isinstance(last_updated, str):
+                last_updated = datetime.fromisoformat(last_updated.replace("Z", ""))
+            age_days = (datetime.utcnow() - last_updated).days
+            if age_days <= 1:
+                fresh_pts = 25
+            elif age_days <= 7:
+                fresh_pts = 20
+            elif age_days <= 30:
+                fresh_pts = 13
+            elif age_days <= 90:
+                fresh_pts = 7
+            else:
+                fresh_pts = 2
+        except Exception:
+            fresh_pts = 0
+
+    freshness_score = min(fresh_pts, 25)
+
+    # ── Total ─────────────────────────────────────────────────────────────────
+    total = entity_score + retrieval_score + freshness_score
 
     if total >= 85:
-        grade, label = "A", "Excellent AI Visibility"
+        grade, label = "A", "Strong AI Visibility"
     elif total >= 70:
         grade, label = "B", "Good AI Visibility"
     elif total >= 55:
-        grade, label = "C", "Fair AI Visibility"
+        grade, label = "C", "Partial AI Visibility"
     elif total >= 40:
-        grade, label = "D", "Needs Improvement"
+        grade, label = "D", "Weak AI Visibility"
     else:
-        grade, label = "F", "Poor AI Visibility"
+        grade, label = "F", "Not Visible to AI"
 
     return {
         "total": total,
         "grade": grade,
         "label": label,
         "dimensions": {
-            "Content Coverage":   {"score": cap_score,     "max": 25},
-            "Structure Quality":  {"score": struct_score,  "max": 20},
-            "Machine Signals":    {"score": machine_score, "max": 20},
-            "Authority":          {"score": auth_score,    "max": 20},
-            "Freshness":          {"score": fresh_score,   "max": 15},
+            "Entity Establishment": {
+                "score": entity_score,
+                "max": 35,
+                "layer": "L1",
+                "description": "Are you a resolved entity? Schema.org, robots.txt, content identity.",
+            },
+            "Content Retrieval": {
+                "score": retrieval_score,
+                "max": 40,
+                "layer": "L4",
+                "description": "Can your content be retrieved and cited? Coverage, density, AI comprehension.",
+            },
+            "Freshness": {
+                "score": freshness_score,
+                "max": 25,
+                "layer": "cross-layer",
+                "description": "76.4% of AI-cited pages were updated within 30 days.",
+            },
         },
-        "suggestions": _suggestions(registry, cap_score, struct_score, machine_score, auth_score),
-        "confidence": round(ai.confidence_score, 2),
+        "suggestions": _suggestions(registry, entity_score, retrieval_score),
+        "confidence": round(conf, 2),
         "pages_crawled": pages,
         "source": ai.source,
+        "calculated_at": datetime.utcnow().isoformat(),
     }
 
 
-def _suggestions(registry, cap, struct, machine, auth) -> list:
+def _suggestions(registry, entity_score: int, retrieval_score: int) -> list:
+    """Prioritized fixes based on The Stack framework."""
     tips = []
-    if cap < 15:
-        tips.append("Add more detailed capability descriptions to improve AI understanding")
-    if struct < 12:
-        tips.append("Document your API base URL, auth methods, and SDK availability")
-    if machine < 12:
-        ai = registry.ai_metadata
-        if not ai.llms_txt_url:
-            tips.append("Create a /llms.txt file to give AI systems a direct summary of your product")
-        if not ai.webmcp_enabled:
-            tips.append("Register via WebMCP so AI agents can directly discover your capabilities")
-        if not ai.ai_plugin_url:
-            tips.append("Add an /ai-plugin.json manifest for ChatGPT-compatible agent discovery")
-    if auth < 12:
-        m = registry.metadata
-        if not m.docs_url:
-            tips.append("Add a docs URL so AI systems can reference your documentation")
-        if not m.support_url:
-            tips.append("Add a support URL to signal trustworthiness to AI systems")
-    # Robots.txt tip
     ai = registry.ai_metadata
-    if ai.robots_blocks_ai_crawlers and len(tips) < 4:
+    m  = registry.metadata
+    p  = registry.pricing
+
+    # L1: Entity Establishment fixes first (foundation layer — everything builds on it)
+    if ai.robots_blocks_ai_crawlers:
         blocked = ", ".join(ai.robots_blocked_crawlers[:3])
-        tips.insert(0, f"Your robots.txt is blocking AI crawlers ({blocked}) — they cannot index your site")
-    # Schema.org tips
-    if not ai.schema_org_has_organization and len(tips) < 4:
-        tips.append("Add Organization schema.org JSON-LD so AI engines know your company's entity")
-    if not ai.schema_org_has_faq and len(tips) < 4:
-        tips.append("Add FAQPage schema.org markup — FAQ structured data is cited 3x more often by AI")
+        tips.insert(0, f"Critical: robots.txt is blocking AI crawlers ({blocked}) — they cannot index or cite your site")
+
+    if not ai.schema_org_has_organization:
+        tips.append("Add Organization schema.org JSON-LD — AI engines use this for entity resolution before retrieval")
+
+    if not ai.schema_org_has_faq:
+        tips.append("Add FAQPage schema.org markup — FAQ content is retrieved 3x more often by AI systems")
+
+    if not m.description or len(m.description) <= 80:
+        tips.append("Add a detailed description to your site — AI needs a clear entity identity to describe and recommend you")
+
+    # L4: Content Retrieval fixes
+    if ai.pages_crawled < 5:
+        tips.append("Low page coverage — check robots.txt allows GPTBot and ClaudeBot, then re-scan")
+
+    cap_count = len(registry.capabilities)
+    if cap_count < 2:
+        tips.append("Add a clear Features or How It Works page — structured capability content is cited more reliably")
+
+    if not m.docs_url and not p.pricing_page_url:
+        tips.append("Add a /pricing or /docs page — canonical reference URLs help AI engines cite you accurately")
+
     if not tips:
-        tips.append("Strong AI readiness! Install the Galuli snippet for continuous monitoring")
+        tips.append("Strong entity establishment. Run the Entity Check tool for a live directory audit.")
+
     return tips[:4]
 
 

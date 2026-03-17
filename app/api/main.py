@@ -77,7 +77,7 @@ app = FastAPI(
         "- `GET /api/v1/analytics/{domain}/agents` — Agent breakdown\n"
         "- `GET /api/v1/analytics/{domain}/pages` — Per-page breakdown\n"
     ),
-    version="3.2.0",
+    version="3.3.0",
     lifespan=lifespan,
 )
 
@@ -98,11 +98,12 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key", "X-Galuli-Key"],
 )
 
-from app.api.routes import ingest, registry, admin, tenants, push, analytics, billing, content_doctor, score, citations
+from app.api.routes import ingest, registry, admin, tenants, push, analytics, billing, content_doctor, score, citations, entity
 
 app.include_router(ingest.router,         prefix="/api/v1",                  tags=["Ingestion"])
 app.include_router(push.router,           prefix="/api/v1",                  tags=["Snippet / Push"])
 app.include_router(score.router,          prefix="/api/v1/score",            tags=["Score & Badge"])
+app.include_router(entity.router,         prefix="/api/v1/entity",           tags=["Entity Check"])
 app.include_router(registry.router,       prefix="/registry",                tags=["Registry"])
 app.include_router(admin.router,          prefix="/api/v1/admin",            tags=["Admin"])
 app.include_router(tenants.router,        prefix="/api/v1/tenants",          tags=["Tenants"])
@@ -125,7 +126,7 @@ async def health():
     return {
         "status": "ok",
         "service": "galuli",
-        "version": "3.2.0",
+        "version": "3.3.0",
         "anthropic_configured": anthropic_ok,
         "auth_enabled": bool(settings.registry_api_key),
         "registries_indexed": len(registries),
@@ -271,7 +272,7 @@ async def llms_txt():
 
 # ── Snippet delivery ───────────────────────────────────────────────────────
 
-SNIPPET_VERSION = "3.2.0"
+SNIPPET_VERSION = "3.3.0"
 SNIPPET_RELEASED = "2026-02-25"
 
 @app.get("/galuli.js", tags=["Snippet"], include_in_schema=False)
@@ -342,4 +343,4 @@ else:
 
     @app.get("/", include_in_schema=False)
     async def serve_landing():
-        return {"service": "galuli", "version": "3.2.0", "docs": "/docs", "dashboard": "not built"}
+        return {"service": "galuli", "version": "3.3.0", "docs": "/docs", "dashboard": "not built"}
