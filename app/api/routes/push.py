@@ -12,10 +12,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from app.api.limiter import limiter
 from app.services.storage import StorageService
 from app.services.score import calculate_score
 
@@ -58,7 +59,8 @@ class PushResponse(BaseModel):
 # ── Push endpoint ─────────────────────────────────────────────────────────
 
 @router.post("/push", response_model=PushResponse)
-async def push_page(payload: PushPayload, background_tasks: BackgroundTasks):
+@limiter.limit("30/minute")
+async def push_page(request: Request, payload: PushPayload, background_tasks: BackgroundTasks):
     """
     Called by galui.js on every page load.
     Receives page structure + content, updates registry asynchronously.
@@ -249,7 +251,8 @@ def _merge_registries(existing, new):
 # ── GEO endpoint ──────────────────────────────────────────────────────────
 
 @router.get("/geo/{domain}", summary="GEO (Generative Engine Optimization) Score")
-async def get_geo_score(domain: str):
+@limiter.limit("30/minute")
+async def get_geo_score(request: Request, domain: str):
     """
     Per-LLM citation readiness score: how likely is each major AI to cite your site?
     Returns scores for ChatGPT, Perplexity, Claude, Gemini, Grok, and Llama.

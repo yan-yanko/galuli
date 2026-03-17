@@ -3,8 +3,10 @@ import logging
 from datetime import datetime
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel
+
+from app.api.limiter import limiter
 
 from app.models.jobs import IngestJob, JobStatus
 from app.services.crawler import CrawlerService
@@ -47,7 +49,8 @@ def _parse_domain(url: str) -> str:
 
 
 @router.post("/ingest", response_model=IngestResponse)
-async def ingest_url(req: IngestRequest, background_tasks: BackgroundTasks):
+@limiter.limit("3/hour")
+async def ingest_url(request: Request, req: IngestRequest, background_tasks: BackgroundTasks):
     """
     Trigger async ingestion of a domain.
 

@@ -21,6 +21,29 @@ logger = logging.getLogger(__name__)
 TIMEOUT = 8.0
 UA = "Galuli-EntityChecker/1.0 (+https://galuli.io/bot)"
 
+# SSRF protection — block private/loopback ranges and non-public TLDs
+_BLOCKED_HOSTS = {
+    "localhost", "127.0.0.1", "0.0.0.0", "::1",
+    "169.254.169.254",   # AWS metadata
+    "metadata.google.internal",
+}
+_PRIVATE_PREFIXES = ("10.", "172.16.", "172.17.", "172.18.", "172.19.",
+                     "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+                     "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+                     "172.30.", "172.31.", "192.168.")
+
+
+def _is_safe_domain(domain: str) -> bool:
+    """Return False if domain looks like a private/internal host."""
+    host = domain.split(":")[0].lower()
+    if host in _BLOCKED_HOSTS:
+        return False
+    if any(host.startswith(p) for p in _PRIVATE_PREFIXES):
+        return False
+    if "." not in host:
+        return False   # bare hostname, no TLD
+    return True
+
 # Directory platforms AI systems use for entity resolution (K mechanism)
 DIRECTORY_PLATFORMS = [
     {"name": "Crunchbase",   "domain": "crunchbase.com",      "fix": "https://crunchbase.com/add-company"},
@@ -41,6 +64,8 @@ async def check_entity(domain: str) -> Dict[str, Any]:
     Returns per-check results + overall L1 score (0–35).
     """
     domain = domain.replace("www.", "").lower().strip()
+    if not _is_safe_domain(domain):
+        raise ValueError(f"Domain not allowed: {domain}")
     base_url = f"https://{domain}"
 
     async with httpx.AsyncClient(

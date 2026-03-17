@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+from app.api.limiter import limiter
 from app.services.analytics import AnalyticsService
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,8 @@ class AgentEventPayload(BaseModel):
 
 
 @router.post("/event", summary="Log an AI agent hit event")
-async def log_event(payload: AgentEventPayload, request: Request):
+@limiter.limit("60/minute")
+async def log_event(request: Request, payload: AgentEventPayload):
     """Called by the galui.js snippet when an AI agent is detected."""
     analytics.record_event(
         domain=payload.domain,

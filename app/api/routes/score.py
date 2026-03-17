@@ -5,9 +5,10 @@ GET /api/v1/score/{domain}         ← full score data (JSON)
 GET /api/v1/score/{domain}/badge   ← embeddable SVG badge
 """
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
+from app.api.limiter import limiter
 from app.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
@@ -262,7 +263,8 @@ def _make_badge_svg(domain: str, score: int, grade: str, label: str) -> str:
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.get("/{domain}", summary="AI Readiness Score for a domain")
-async def get_score(domain: str):
+@limiter.limit("30/minute")
+async def get_score(request: Request, domain: str):
     """
     Returns the computed AI Readiness Score (0-100) for an indexed domain.
 
@@ -288,7 +290,8 @@ async def get_score(domain: str):
 
 
 @router.get("/{domain}/suggestions", summary="Improvement suggestions for AI Readiness Score")
-async def get_suggestions(domain: str):
+@limiter.limit("30/minute")
+async def get_suggestions(request: Request, domain: str):
     """
     Prioritized list of actions to improve the AI Readiness Score.
     Same suggestions already embedded in the GET /{domain} response.
@@ -309,7 +312,8 @@ async def get_suggestions(domain: str):
 
 
 @router.get("/{domain}/badge", summary="Embeddable SVG badge for AI Readiness Score")
-async def get_badge(domain: str):
+@limiter.limit("60/minute")
+async def get_badge(request: Request, domain: str):
     """
     Returns an embeddable SVG badge showing the AI Readiness Score.
 

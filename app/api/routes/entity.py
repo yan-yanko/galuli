@@ -8,8 +8,9 @@ No entity = no citation path, regardless of content quality.
 """
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
+from app.api.limiter import limiter
 from app.services.entity_checker import check_entity
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,8 @@ router = APIRouter()
 
 
 @router.get("/{domain}", summary="Entity Establishment check — Layer 1 of The Stack")
-async def get_entity(domain: str):
+@limiter.limit("10/minute")
+async def get_entity(request: Request, domain: str):
     """
     Checks whether a domain is a resolved entity across the sources AI systems
     use for entity resolution (knowledge graph layer).
@@ -38,6 +40,8 @@ async def get_entity(domain: str):
 
     try:
         return await check_entity(domain)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Entity check failed for {domain}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Entity check failed")
