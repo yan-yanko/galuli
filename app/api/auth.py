@@ -36,11 +36,15 @@ PUBLIC_PREFIXES = (
     "/about",
     "/roadmap",
     "/pricing",
+    "/install",
+    "/privacy",
+    "/terms",
     "/auth",           # magic link verify page
     "/.well-known/",   # all well-known discovery files
     "/api/v1/score/",   # score + badge + suggestions — read-only, registry is already public
     "/api/v1/geo/",     # per-LLM citation readiness — read-only
     "/api/v1/entity/",  # entity establishment check — public, no crawl needed
+    "/api/v1/jobs/",    # job polling — public (IDs are random UUIDs)
 )
 # Self-service signup + auth + Stripe webhook: always public
 PUBLIC_POST_EXACT = {
@@ -52,6 +56,7 @@ PUBLIC_POST_EXACT = {
     "/api/v1/billing/ls-webhook",   # Lemon Squeezy sends no auth header
     "/api/v1/push",                 # galuli.js snippet — auth via payload.tenant_key
     "/api/v1/analytics/event",      # galuli.js analytics — no auth needed (fire-and-forget)
+    "/api/v1/ingest",               # public scan — rate-limited at 3/hour per IP
 }
 PUBLIC_GET_EXACT = {
     "/api/v1/auth/magic-verify",

@@ -8,7 +8,7 @@ const API_BASE = window.location.hostname === 'localhost'
 async function scanSite(url) {
   const res = await fetch(`${API_BASE}/api/v1/ingest`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': 'kotleryan1984' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url, force_refresh: false, max_pages: 5 }),
   })
   if (!res.ok) throw new Error('Scan failed')
@@ -16,25 +16,19 @@ async function scanSite(url) {
 }
 
 async function pollJob(jobId) {
-  const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`, {
-    headers: { 'X-API-Key': 'kotleryan1984' },
-  })
+  const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`)
   if (!res.ok) throw new Error('Poll failed')
   return res.json()
 }
 
 async function getScore(domain) {
-  const res = await fetch(`${API_BASE}/api/v1/score/${domain}`, {
-    headers: { 'X-API-Key': 'kotleryan1984' },
-  })
+  const res = await fetch(`${API_BASE}/api/v1/score/${domain}`)
   if (!res.ok) throw new Error('Score not found')
   return res.json()
 }
 
 async function getRegistry(domain) {
-  const res = await fetch(`${API_BASE}/registry/${domain}`, {
-    headers: { 'X-API-Key': 'kotleryan1984' },
-  })
+  const res = await fetch(`${API_BASE}/registry/${domain}`)
   if (!res.ok) throw new Error('Registry not found')
   return res.json()
 }
@@ -794,11 +788,11 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
           galuli
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          {[['Pricing', '/pricing'], ['Blog', '/blog'], ['About', '/about'], ['Roadmap', '/roadmap']].map(([label, href]) => (
+          {[['Pricing', '/pricing'], ['Blog', '/blog'], ['About', '/about'], ['Roadmap', '/roadmap'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
             <a key={label} href={href} style={{ fontSize: 12, color: 'var(--subtle)', textDecoration: 'none' }}>{label}</a>
           ))}
           <a href="mailto:hello@galuli.io" style={{ fontSize: 12, color: 'var(--subtle)', textDecoration: 'none' }}>hello@galuli.io</a>
-          <span style={{ fontSize: 12, color: 'var(--subtle)' }}>© 2025 Galuli</span>
+          <span style={{ fontSize: 12, color: 'var(--subtle)' }}>© 2026 Galuli</span>
         </div>
         <a href="/dashboard/" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>Dashboard →</a>
       </div>

@@ -9,6 +9,8 @@ import { RoadmapPage } from './Roadmap.jsx'
 import { PricingPage } from './Pricing.jsx'
 import { AuthModal } from './AuthModal.jsx'
 import { InstallGuidePage } from './InstallGuide.jsx'
+import { PrivacyPage } from './Privacy.jsx'
+import { TermsPage } from './Terms.jsx'
 
 // Simple path-based routing — no react-router needed
 // /dashboard/  → dashboard app
@@ -38,6 +40,8 @@ function Root() {
     if (path === '/roadmap' || path === '/roadmap/') return { page: 'roadmap' }
     if (path === '/pricing' || path === '/pricing/') return { page: 'pricing' }
     if (path === '/install' || path === '/install/') return { page: 'install' }
+    if (path === '/privacy' || path === '/privacy/') return { page: 'privacy' }
+    if (path === '/terms' || path === '/terms/') return { page: 'terms' }
     return null
   })
 
@@ -83,6 +87,8 @@ function Root() {
           />
         )}
         {contentPage.page === 'install' && <InstallGuidePage onNavigate={handleContentNavigate} />}
+        {contentPage.page === 'privacy' && <PrivacyPage onNavigate={handleContentNavigate} />}
+        {contentPage.page === 'terms' && <TermsPage onNavigate={handleContentNavigate} />}
       </>
     )
   }

@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     from app.services.scheduler import start_scheduler, stop_scheduler
 
     logger.info("=" * 55)
-    logger.info("  Galuli — AI Readability Engine")
+    logger.info("  Galuli — AI Visibility Platform")
     logger.info("=" * 55)
     logger.info(f"  Anthropic:    {'OK' if settings.anthropic_api_key else 'MISSING'}")
     logger.info(f"  Auth:         {'master key' if settings.registry_api_key else 'open (dev)'}")
@@ -204,6 +204,8 @@ async def sitemap_xml():
         '  <url><loc>https://galuli.io/pricing</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>\n'
         '  <url><loc>https://galuli.io/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n'
         '  <url><loc>https://galuli.io/roadmap</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n'
+        '  <url><loc>https://galuli.io/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
+        '  <url><loc>https://galuli.io/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
         '</urlset>\n'
     )
     return HTMLResponse(content, media_type="application/xml",
