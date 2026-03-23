@@ -22,7 +22,8 @@ PUBLIC_EXACT = {
     "/", "/galui.js", "/galuli.js", "/galuli.js/version",
     # Crawler-critical — must NEVER require auth (robots, sitemaps, AI discovery files)
     "/robots.txt", "/sitemap.xml", "/sitemap_index.xml",
-    "/llms.txt", "/llms-full.txt",
+    "/llms.txt", "/llms-full.txt", "/sitemap-snapshots.xml",
+    "/galuli-indexnow-2026.txt",
     "/.well-known/ai-plugin.json", "/.well-known/openapi.yaml",
     "/favicon.ico", "/favicon.svg",
 }

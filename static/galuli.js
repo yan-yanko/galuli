@@ -1,16 +1,18 @@
 /**
  * galuli.js — AI Readability Engine
- * Version: 3.2.0
+ * Version: 3.4.0
  *
  * Drop this on any website to make it instantly readable by LLMs and AI agents.
  *
  * What it does:
  *   1. Detects AI crawlers and agents visiting the page
- *   2. Injects discovery links: llms.txt, ai-plugin.json, robots hints
+ *   2. Injects discovery links: llms.txt, robots hints
  *   3. Auto-injects JSON-LD Organization schema if none exists
  *   4. Registers WebMCP tools (navigator.modelContext) for browser AI agents
  *   5. Extracts page data (headings, CTAs, forms, schema.org, text) and pushes to Galuli
- *   6. Logs AI agent traffic for analytics
+ *   6. Captures full rendered DOM snapshot — makes SPA content visible to AI crawlers
+ *   7. Detects SPA invisibility (JS-only rendering) and warns site owners
+ *   8. Logs AI agent traffic for analytics
  *
  * Usage:
  *   <script src="https://galuli.io/galuli.js?key=YOUR_KEY" async></script>
@@ -157,12 +159,21 @@
     if (!head) return;
 
     // ── llms.txt (Galuli hosted) ──────────────────────────────────────────────
-    if (!document.querySelector('link[rel="llms"]')) {
+    // rel="llms-txt" per llmstxt.org emerging spec
+    if (!document.querySelector('link[rel="llms-txt"]')) {
       var llmsLink = document.createElement('link');
-      llmsLink.rel  = 'llms';
+      llmsLink.rel  = 'llms-txt';
       llmsLink.href = API_BASE + '/registry/' + domain + '/llms.txt';
       llmsLink.type = 'text/plain';
       head.appendChild(llmsLink);
+    }
+
+    // ── <meta name="llms-txt"> — fallback for crawlers that read meta but skip <link> ──
+    if (!document.querySelector('meta[name="llms-txt"]')) {
+      var llmsMeta = document.createElement('meta');
+      llmsMeta.name    = 'llms-txt';
+      llmsMeta.content = API_BASE + '/registry/' + domain + '/llms.txt';
+      head.appendChild(llmsMeta);
     }
 
     // ── llms.txt (site-native, at /llms.txt) — alternate discovery ──────────
@@ -177,23 +188,16 @@
       head.appendChild(llmsNative);
     }
 
-    // ── ai-plugin.json (Galuli hosted) ────────────────────────────────────────
-    if (!document.querySelector('link[rel="ai-plugin"]')) {
-      var pluginLink = document.createElement('link');
-      pluginLink.rel  = 'ai-plugin';
-      pluginLink.href = API_BASE + '/registry/' + domain + '/ai-plugin.json';
-      pluginLink.type = 'application/json';
-      head.appendChild(pluginLink);
-    }
-
-    // ── /.well-known/ai-plugin.json (site-native, OpenAI spec location) ──────
-    if (!document.querySelector('link[href="/.well-known/ai-plugin.json"]')) {
-      var pluginNative = document.createElement('link');
-      pluginNative.rel  = 'alternate';
-      pluginNative.href = '/.well-known/ai-plugin.json';
-      pluginNative.type = 'application/json';
-      pluginNative.setAttribute('data-galuli', 'ai-plugin');
-      head.appendChild(pluginNative);
+    // ── llms-full.txt (Galuli hosted — full AI-readable content) ──────────
+    // This is the key discovery link: AI engines that follow llms.txt links
+    // will find the complete rendered content of this site, even if the site
+    // is a JavaScript SPA that crawlers can't normally read.
+    if (!document.querySelector('link[rel="llms-full-txt"]')) {
+      var llmsFullLink = document.createElement('link');
+      llmsFullLink.rel  = 'llms-full-txt';
+      llmsFullLink.href = API_BASE + '/registry/' + domain + '/llms-full.txt';
+      llmsFullLink.type = 'text/plain';
+      head.appendChild(llmsFullLink);
     }
 
     // ── robots meta — tell AI crawlers they may index and use this page ───────
@@ -469,6 +473,91 @@
     return images;
   }
 
+  // ── SPA Invisibility Detection ─────────────────────────────────────────
+  // Detects if the page is a JavaScript-only SPA where AI crawlers would see
+  // an empty shell. Checks the initial HTML before React/Vue hydrates.
+  var _isSpaDetected = false;
+  (function () {
+    // Check if the body had minimal content before JS rendered
+    // Common SPA patterns: single <div id="root"></div>, <div id="app"></div>
+    var body = document.body;
+    if (!body) return;
+    var childElements = body.querySelectorAll(':scope > *:not(script):not(style):not(noscript):not(link)');
+    // SPA signal: body has 1-2 non-script children and very little text
+    var noscriptContent = body.querySelector('noscript');
+    var hasNoscriptFallback = noscriptContent && noscriptContent.textContent.trim().length > 50;
+
+    // Check for common SPA root patterns
+    var spaRoot = body.querySelector('#root, #app, #__next, #__nuxt, [data-reactroot]');
+    if (spaRoot && childElements.length <= 3 && !hasNoscriptFallback) {
+      _isSpaDetected = true;
+    }
+  })();
+
+  // ── DOM Snapshot Capture ─────────────────────────────────────────────────
+  // Captures a clean, content-focused HTML snapshot of the rendered page.
+  // This is the core of Galuli's SPA visibility solution: the snapshot is
+  // sent to Galuli's backend, which serves it as static HTML at
+  // /registry/{domain}/pages/{path} — readable by AI crawlers.
+  function _captureSnapshot() {
+    var main = document.querySelector('main') ||
+               document.querySelector('[role="main"]') ||
+               document.querySelector('#main-content') ||
+               document.querySelector('#content') ||
+               document.querySelector('article') ||
+               document.querySelector('.content') ||
+               document.querySelector('.main');
+
+    // If no landmark found, use body but be more aggressive with cleanup
+    var source = main || document.body;
+    if (!source) return '';
+
+    var clone = source.cloneNode(true);
+
+    // Remove noise: scripts, styles, iframes, hidden elements, tracking pixels
+    var remove = clone.querySelectorAll([
+      'script', 'style', 'noscript', 'iframe', 'svg',
+      'link[rel="stylesheet"]', 'link[rel="preload"]',
+      '[class*="cookie"]', '[class*="banner"]', '[class*="popup"]', '[class*="modal"]',
+      '[id*="chat"]', '[class*="chat"]', '[aria-hidden="true"]',
+      '[class*="sidebar"]', '[class*="ad-"]', '[id*="ad-"]',
+      '[class*="tracking"]', '[class*="pixel"]',
+      'img[width="1"]', 'img[height="1"]',
+      '[data-galuli]',  // our own injected elements
+    ].join(', '));
+    for (var i = 0; i < remove.length; i++) {
+      remove[i].parentNode && remove[i].parentNode.removeChild(remove[i]);
+    }
+
+    // Remove all inline styles and event handlers (reduce size, improve readability)
+    var allEls = clone.querySelectorAll('*');
+    for (var j = 0; j < allEls.length; j++) {
+      allEls[j].removeAttribute('style');
+      allEls[j].removeAttribute('onclick');
+      allEls[j].removeAttribute('onload');
+      allEls[j].removeAttribute('onerror');
+      // Remove data attributes except meaningful ones
+      var attrs = allEls[j].attributes;
+      for (var k = attrs.length - 1; k >= 0; k--) {
+        var name = attrs[k].name;
+        if (name.startsWith('data-') && name !== 'data-testid' && name !== 'data-id') {
+          allEls[j].removeAttribute(name);
+        }
+      }
+      // Remove class attribute to reduce size (classes are meaningless without CSS)
+      allEls[j].removeAttribute('class');
+    }
+
+    var html = clone.innerHTML;
+
+    // Truncate to 500KB to prevent abuse
+    if (html.length > 512000) {
+      html = html.slice(0, 512000);
+    }
+
+    return html;
+  }
+
   function _hashString(str) {
     // FNV-1a 32-bit hash
     var hash = 2166136261;
@@ -665,7 +754,7 @@
       tenant_key:      TENANT_KEY,
       page:            pageData,
       content_hash:    contentHash,
-      snippet_version: '3.2.0',
+      snippet_version: '3.4.0',
     };
 
     log('Pushing page data to backend:', pageData.url);
@@ -714,7 +803,7 @@
 
   // ── 8. Main init ───────────────────────────────────────────────────────────
   function _init() {
-    log('Initializing galuli v3.2.0 for domain:', domain);
+    log('Initializing galuli v3.4.0 for domain:', domain);
 
     // ── Inject all <head> signals first (fast, sync) ──────────────────────
     _injectDiscoveryLinks();
@@ -736,6 +825,23 @@
     // ── Register WebMCP tools ─────────────────────────────────────────────
     _registerWebMCPTools(forms, pageType);
 
+    // ── Capture DOM snapshot (for SPA visibility) ─────────────────────────
+    var htmlSnapshot = _captureSnapshot();
+
+    // ── SPA invisibility warning ────────────────────────────────────────
+    if (_isSpaDetected) {
+      log('SPA detected — your page content is invisible to AI crawlers (ChatGPT, Claude, Perplexity).');
+      log('Galuli is capturing a snapshot to make it readable. View cached pages at:');
+      log('  https://galuli.io/registry/' + domain + '/pages');
+      if (!DEBUG) {
+        console.info(
+          '[galuli] This site uses client-side rendering. AI crawlers (ChatGPT, Claude, Perplexity) cannot read JavaScript-rendered content. ' +
+          'Galuli is capturing page snapshots to make your content AI-visible. ' +
+          'Dashboard: https://galuli.io/dashboard/'
+        );
+      }
+    }
+
     // ── Build and push page data ──────────────────────────────────────────
     var pageData = {
       url:              window.location.href,
@@ -749,6 +855,8 @@
       open_graph:       openGraph,
       images:           images,
       text_preview:     textPreview,
+      html_snapshot:    htmlSnapshot,
+      is_spa:           _isSpaDetected,
       webmcp_tools:     registeredTools,
       webmcp_supported: webmcpSupported,
       lang:             document.documentElement.getAttribute('lang') || null,
@@ -798,7 +906,7 @@
 
   // ── Public API (window.galui) ──────────────────────────────────────────────
   window.galuli = {
-    version: '3.2.0',
+    version: '3.4.0',
     domain:  domain,
     getTools: function () { return registeredTools.slice(); },
     getScore: function (callback) {
@@ -813,6 +921,6 @@
   };
   window.galui = window.galuli; // backward-compat alias — existing installs using window.galui still work
 
-  log('galuli.js loaded — v3.2.0');
+  log('galuli.js loaded — v3.4.0');
 
 }(window, document));

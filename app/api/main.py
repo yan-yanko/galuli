@@ -77,7 +77,7 @@ app = FastAPI(
         "- `GET /api/v1/analytics/{domain}/agents` — Agent breakdown\n"
         "- `GET /api/v1/analytics/{domain}/pages` — Per-page breakdown\n"
     ),
-    version="3.3.0",
+    version="3.4.0",
     lifespan=lifespan,
 )
 
@@ -126,7 +126,7 @@ async def health():
     return {
         "status": "ok",
         "service": "galuli",
-        "version": "3.3.0",
+        "version": "3.4.0",
         "anthropic_configured": anthropic_ok,
         "auth_enabled": bool(settings.registry_api_key),
         "registries_indexed": len(registries),
@@ -175,6 +175,7 @@ async def robots_txt():
         "Allow: /\n"
         "\n"
         "Sitemap: https://galuli.io/sitemap.xml\n"
+        "Sitemap: https://galuli.io/sitemap-snapshots.xml\n"
         "# AI discovery: https://galuli.io/llms.txt\n"
     )
     return PlainTextResponse(content, headers={"Cache-Control": "public, max-age=3600"})
@@ -224,15 +225,19 @@ async def llms_txt():
         "> Galuli is a Generative Engine Optimization (GEO) platform that measures, analyzes, and improves "
         "how websites appear in AI-generated answers from ChatGPT, Claude, Perplexity, Gemini, Grok, and Llama.\n\n"
         "Galuli was founded in 2025. Core capabilities:\n"
+        "- AI-Readable Layer: captures rendered DOM from JavaScript SPAs and hosts static HTML snapshots\n"
+        "  that AI crawlers (ChatGPT, Claude, Perplexity) can read without executing JavaScript\n"
         "- AI Readiness Score (0-100 across 5 dimensions)\n"
         "- GEO Score for 6 major AI systems individually\n"
         "- AI Attention Score (composite: frequency, depth, recency, diversity of AI crawls)\n"
         "- Content Doctor: Authority Gap Scanner (finds claims AI won't trust) + Structural Optimizer\n"
         "- Topic Attention Map (which content areas AI agents read most)\n"
         "- Per-LLM crawl depth analysis (which AI systems go deep vs. skim)\n"
-        "- Automatic llms.txt generation\n"
+        "- Automatic llms.txt + llms-full.txt generation (with real page content)\n"
+        "- IndexNow integration (pings Bing on every page update — ChatGPT uses Bing for search)\n"
         "- WebMCP tool registration\n"
         "- AI agent traffic analytics\n"
+        "- SPA invisibility detection (warns when your site is invisible to AI crawlers)\n"
         "Install takes one script tag.\n\n"
         "Pricing: Free tier (scan only, no credit card). Starter $9/month (1 site, JS monitoring). "
         "Pro $29/month (10 sites). Agency $799/year (unlimited sites).\n\n"
@@ -261,7 +266,9 @@ async def llms_txt():
         "- [API Docs](https://galuli.io/docs): FastAPI interactive documentation\n"
         "- [Registry endpoint](https://galuli.io/registry/{domain}): JSON capability registry for any indexed domain\n"
         "- [llms.txt per domain](https://galuli.io/registry/{domain}/llms.txt): Auto-generated llms.txt for indexed sites\n"
-        "- [AI Plugin manifest](https://galuli.io/registry/{domain}/ai-plugin.json): OpenAI-compatible plugin manifest\n\n"
+        "- [llms-full.txt per domain](https://galuli.io/registry/{domain}/llms-full.txt): Complete page content — the AI-readable version of JavaScript sites\n"
+        "- [Cached pages](https://galuli.io/registry/{domain}/pages): List of all AI-readable page snapshots\n"
+        "- [Page snapshot](https://galuli.io/registry/{domain}/pages/{path}): Individual page rendered as static HTML\n\n"
         "## Contact\n\n"
         "- Email: hello@galuli.io\n"
         "- GitHub: https://github.com/yan-yanko/galuli\n"
@@ -272,9 +279,51 @@ async def llms_txt():
     })
 
 
+# ── IndexNow key verification ──────────────────────────────────────────────
+
+@app.get("/galuli-indexnow-2026.txt", include_in_schema=False)
+async def indexnow_key():
+    """IndexNow key verification file — proves we own the key."""
+    return PlainTextResponse("galuli-indexnow-2026",
+                             headers={"Cache-Control": "public, max-age=86400"})
+
+
+# ── Dynamic sitemap for cached page snapshots ────────────────────────────
+
+@app.get("/sitemap-snapshots.xml", include_in_schema=False)
+async def sitemap_snapshots_xml():
+    """
+    Dynamic sitemap of all Galuli-hosted page snapshots.
+    This is how AI crawlers discover cached versions of SPA pages.
+    """
+    from app.services.storage import StorageService
+    storage = StorageService()
+    domains = storage.list_all_snapshot_domains()
+
+    urls = []
+    for domain in domains:
+        snapshots = storage.list_page_snapshots(domain)
+        for snap in snapshots:
+            path = snap["page_path"]
+            updated = snap.get("updated_at", "")[:10]
+            url = f"https://galuli.io/registry/{domain}/pages{path}"
+            urls.append(f'  <url><loc>{url}</loc><lastmod>{updated}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>')
+        # Also add llms-full.txt
+        urls.append(f'  <url><loc>https://galuli.io/registry/{domain}/llms-full.txt</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>')
+
+    content = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls) + "\n"
+        '</urlset>\n'
+    )
+    return HTMLResponse(content, media_type="application/xml",
+                        headers={"Cache-Control": "public, max-age=3600"})
+
+
 # ── Snippet delivery ───────────────────────────────────────────────────────
 
-SNIPPET_VERSION = "3.3.0"
+SNIPPET_VERSION = "3.4.0"
 SNIPPET_RELEASED = "2026-02-25"
 
 @app.get("/galuli.js", tags=["Snippet"], include_in_schema=False)
@@ -332,7 +381,8 @@ if _dashboard_path.exists():
         """SPA fallback — serve index.html for any non-API path so React Router handles it."""
         # Don't intercept API routes, registry, static files, or crawler files
         skip_prefixes = ("api/", "registry/", "docs", "redoc", "openapi", ".well-known/")
-        skip_exact = {"robots.txt", "sitemap.xml", "llms.txt", "llms-full.txt",
+        skip_exact = {"robots.txt", "sitemap.xml", "sitemap-snapshots.xml",
+                      "llms.txt", "llms-full.txt", "galuli-indexnow-2026.txt",
                       "galuli.js", "galui.js", "favicon.ico", "favicon.svg"}
         if full_path.startswith(skip_prefixes) or full_path in skip_exact:
             from fastapi import HTTPException
@@ -345,4 +395,4 @@ else:
 
     @app.get("/", include_in_schema=False)
     async def serve_landing():
-        return {"service": "galuli", "version": "3.3.0", "docs": "/docs", "dashboard": "not built"}
+        return {"service": "galuli", "version": "3.4.0", "docs": "/docs", "dashboard": "not built"}

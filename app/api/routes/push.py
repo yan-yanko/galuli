@@ -36,7 +36,9 @@ class PageData(BaseModel):
     ctas: Optional[List[str]] = []
     forms: Optional[List[Dict]] = []
     schema_org: Optional[List[Dict]] = []
-    text_preview: Optional[str] = None  # first 2000 chars of clean text
+    text_preview: Optional[str] = None  # first 4000 chars of clean text
+    html_snapshot: Optional[str] = None # cleaned rendered DOM (up to 500KB)
+    is_spa: Optional[bool] = False      # true if client detected SPA-only rendering
     webmcp_tools: Optional[List[Dict]] = []  # tools registered via WebMCP
     webmcp_supported: Optional[bool] = False
 
@@ -105,6 +107,14 @@ async def push_page(request: Request, payload: PushPayload, background_tasks: Ba
 
     # Store hash + queue background pipeline
     storage.save_page_hash(domain, payload.page.url, page_hash)
+
+    # Save HTML snapshot if provided (AI-readable cached page)
+    if payload.page.html_snapshot:
+        background_tasks.add_task(
+            _save_snapshot,
+            domain=domain,
+            page=payload.page,
+        )
 
     background_tasks.add_task(
         _run_push_pipeline,
@@ -224,6 +234,43 @@ def _hash_page(page: PageData) -> str:
     """SHA256 of page content for change detection."""
     content = (page.text_preview or "") + (page.title or "") + str(page.headings)
     return hashlib.sha256(content.encode()).hexdigest()
+
+
+async def _save_snapshot(domain: str, page: PageData):
+    """
+    Save HTML snapshot to page_snapshots table and ping IndexNow.
+    Called as a background task after push.
+    """
+    import json
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(page.url)
+        page_path = parsed.path.rstrip("/") or "/"
+
+        # Truncate snapshot to 500KB to prevent abuse
+        html = (page.html_snapshot or "")[:512_000]
+        text = (page.text_preview or "")[:50_000]
+        headings_json = json.dumps(page.headings or [])
+
+        storage.save_page_snapshot(
+            domain=domain,
+            page_path=page_path,
+            page_url=page.url,
+            title=page.title or "",
+            description=page.description or "",
+            html_snapshot=html,
+            text_content=text,
+            headings_json=headings_json,
+        )
+        logger.info(f"[snapshot] Saved snapshot for {domain}{page_path}")
+
+        # Ping IndexNow so Bing (→ ChatGPT) discovers the cached page
+        from app.services.indexnow import ping_snapshot_urls
+        await ping_snapshot_urls(domain, [page_path])
+
+    except Exception as e:
+        logger.error(f"[snapshot] Failed to save snapshot for {domain}: {e}", exc_info=True)
 
 
 def _merge_registries(existing, new):

@@ -52,6 +52,21 @@ CREATE TABLE IF NOT EXISTS page_hashes (
 )
 """
 
+CREATE_PAGE_SNAPSHOTS = """
+CREATE TABLE IF NOT EXISTS page_snapshots (
+    domain       TEXT NOT NULL,
+    page_path    TEXT NOT NULL,
+    page_url     TEXT NOT NULL,
+    title        TEXT NOT NULL DEFAULT '',
+    description  TEXT NOT NULL DEFAULT '',
+    html_snapshot TEXT NOT NULL,
+    text_content  TEXT NOT NULL DEFAULT '',
+    headings_json TEXT NOT NULL DEFAULT '[]',
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY (domain, page_path)
+)
+"""
+
 
 class StorageService:
     """
@@ -83,6 +98,7 @@ class StorageService:
             conn.execute(CREATE_JOBS)
             conn.execute(CREATE_CRAWL_SCHEDULE)
             conn.execute(CREATE_PAGE_HASHES)
+            conn.execute(CREATE_PAGE_SNAPSHOTS)
             conn.commit()
         logger.info(f"Storage initialized: {self.db_path}")
 
@@ -223,3 +239,62 @@ class StorageService:
                     updated_at = excluded.updated_at
             """, (domain, page_url, hash_val, now))
             conn.commit()
+
+    # --- Page snapshots (AI-readable cached pages) ---
+
+    def save_page_snapshot(self, domain: str, page_path: str, page_url: str,
+                           title: str, description: str, html_snapshot: str,
+                           text_content: str, headings_json: str = "[]"):
+        now = datetime.utcnow().isoformat()
+        with self._get_conn() as conn:
+            conn.execute("""
+                INSERT INTO page_snapshots
+                    (domain, page_path, page_url, title, description,
+                     html_snapshot, text_content, headings_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(domain, page_path) DO UPDATE SET
+                    page_url = excluded.page_url,
+                    title = excluded.title,
+                    description = excluded.description,
+                    html_snapshot = excluded.html_snapshot,
+                    text_content = excluded.text_content,
+                    headings_json = excluded.headings_json,
+                    updated_at = excluded.updated_at
+            """, (domain, page_path, page_url, title, description,
+                  html_snapshot, text_content, headings_json, now))
+            conn.commit()
+
+    def get_page_snapshot(self, domain: str, page_path: str) -> Optional[dict]:
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM page_snapshots WHERE domain=? AND page_path=?",
+                (domain, page_path)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def list_page_snapshots(self, domain: str) -> List[dict]:
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT domain, page_path, page_url, title, description, updated_at "
+                "FROM page_snapshots WHERE domain=? ORDER BY page_path",
+                (domain,)
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_all_snapshots_full(self, domain: str) -> List[dict]:
+        """Get all snapshots with full text content for llms-full.txt generation."""
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT page_path, page_url, title, description, text_content, headings_json, updated_at "
+                "FROM page_snapshots WHERE domain=? ORDER BY page_path",
+                (domain,)
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def list_all_snapshot_domains(self) -> List[str]:
+        """List all domains that have page snapshots."""
+        with self._get_conn() as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT domain FROM page_snapshots ORDER BY domain"
+            ).fetchall()
+            return [r["domain"] for r in rows]

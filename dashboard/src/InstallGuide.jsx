@@ -112,7 +112,7 @@ export default function Document() {
       'In the file explorer, open public/index.html.',
       'Find the closing </head> tag and paste the snippet before it.',
       'Save — Lovable hot-reloads automatically.',
-      'v3.2.0 detects React Router navigation so every page is indexed, not just the landing page.',
+      'v3.4.0 detects React Router navigation so every page is indexed, not just the landing page.',
     ],
     code: '<script src="https://galuli.io/galuli.js?key=YOUR_KEY" async></script>',
   },
@@ -147,11 +147,45 @@ export default function Document() {
     ],
     code: '<script src="https://galuli.io/galuli.js?key=YOUR_KEY" async></script>',
   },
+  cloudflare: {
+    name: 'Cloudflare Worker', emoji: '🟠', difficulty: 'Medium',
+    steps: [
+      'Log in to the Cloudflare dashboard and select your domain.',
+      'Go to Workers & Pages → Create → Create Worker. Give it a name (e.g. galuli-llms).',
+      'Delete all default code and paste the Worker code below. Click Deploy.',
+      'Go back to Workers & Pages → your worker → Settings → Triggers → Add route.',
+      'Set the route to yourdomain.com/llms.txt and select your zone. Save.',
+      'Visit yourdomain.com/llms.txt in your browser — it should return your AI registry. Done.',
+    ],
+    code: `// Cloudflare Worker — serves your Galuli AI registry at /llms.txt
+// This makes your site discoverable by AI engines during real-time browsing,
+// even if your site is a JavaScript SPA that AI crawlers can't render.
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url)
+
+    if (url.pathname === '/llms.txt') {
+      const registryUrl = \`https://galuli.io/registry/\${url.hostname}/llms.txt\`
+      const response = await fetch(registryUrl)
+      return new Response(await response.text(), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+        },
+      })
+    }
+
+    return fetch(request)
+  },
+}`,
+  },
 }
 
 const PLATFORM_ORDER = [
   'html', 'wordpress', 'webflow', 'shopify', 'squarespace',
-  'wix', 'framer', 'nextjs', 'lovable', 'replit', 'react', 'ghost',
+  'wix', 'framer', 'nextjs', 'lovable', 'replit', 'react', 'ghost', 'cloudflare',
 ]
 
 const FAQ = [
@@ -165,7 +199,7 @@ const FAQ = [
   },
   {
     q: 'Does it work on SPAs (React Router, Next.js app router)?',
-    a: 'Yes. v3.2.0 automatically detects route changes via history.pushState patching and popstate events, and re-indexes on every navigation.',
+    a: 'Yes. v3.4.0 automatically detects route changes via history.pushState patching and popstate events, and re-indexes on every navigation.',
   },
   {
     q: 'Can I install it on multiple domains?',
@@ -293,8 +327,8 @@ export function InstallGuidePage({ onNavigate }) {
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '28px 32px', marginBottom: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 18 }}>Verify It Is Working</div>
           {[
-            <>Open DevTools (F12) → Console → type <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>window.galuli.version</code> — should return <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>'3.2.0'</code></>,
-            <>Look for <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>[galuli] Initializing galuli v3.2.0</code> in the console. Add <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>?debug=1</code> to the script src for verbose logs.</>,
+            <>Open DevTools (F12) → Console → type <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>window.galuli.version</code> — should return <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>'3.4.0'</code></>,
+            <>Look for <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>[galuli] Initializing galuli v3.4.0</code> in the console. Add <code style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)' }}>?debug=1</code> to the script src for verbose logs.</>,
             <>Check your Galuli dashboard — your domain should appear within 60 seconds of the first page load.</>,
           ].map((item, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: i === 2 ? 0 : 14 }}>
