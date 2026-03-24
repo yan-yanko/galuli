@@ -36,7 +36,7 @@ MAX_PAGES = 20
 MAX_CONTENT_BYTES = 50_000
 REQUEST_TIMEOUT = 10.0
 CONCURRENCY = 4
-CRAWLER_UA = "CapabilityRegistry-Crawler/1.0 (+https://capabilityregistry.ai/bot)"
+CRAWLER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 
 class CrawlerService:
