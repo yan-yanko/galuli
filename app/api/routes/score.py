@@ -214,6 +214,7 @@ def _grade_color(grade: str) -> tuple:
 
 def _make_badge_svg(domain: str, score: int, grade: str, label: str) -> str:
     """Generate an embeddable SVG badge showing domain + AI Readiness Score."""
+    from urllib.parse import quote
     fill_color, _ = _grade_color(grade)
     # Arc for score ring (cx=34, cy=34, r=26)
     cx, cy, r = 34, 34, 26
@@ -225,8 +226,10 @@ def _make_badge_svg(domain: str, score: int, grade: str, label: str) -> str:
     # Truncate long domains
     display_domain = domain if len(domain) <= 22 else domain[:20] + "…"
 
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="220" height="80" viewBox="0 0 220 80" role="img" aria-label="Galuli AI Readiness Score: {score}/100 for {domain}">
-  <title>Galuli AI Readiness Score: {score}/100</title>
+    link_url = f"https://galuli.io/?ref={quote(domain)}&amp;utm_source=badge&amp;utm_medium=embed&amp;utm_campaign=score_badge"
+
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="220" height="80" viewBox="0 0 220 80" role="img" aria-label="Galuli AI Readiness Score: {score}/100 for {domain}">
+  <title>Galuli AI Readiness Score: {score}/100 — Click to check your site</title>
   <defs>
     <style>
       .bg {{ fill: #0f172a; }}
@@ -240,22 +243,26 @@ def _make_badge_svg(domain: str, score: int, grade: str, label: str) -> str:
       .domain {{ font-family: -apple-system, sans-serif; font-weight: 700; font-size: 11px; fill: #f8fafc; }}
       .brand {{ font-family: -apple-system, sans-serif; font-weight: 800; font-size: 9px; fill: #6366f1; }}
       .border {{ fill: none; stroke: #1e293b; stroke-width: 1; rx: 8; }}
+      .cta {{ font-family: -apple-system, sans-serif; font-weight: 600; font-size: 8px; fill: #6366f1; text-anchor: end; }}
     </style>
   </defs>
-  <rect width="220" height="80" rx="10" class="bg"/>
-  <rect width="220" height="80" rx="10" class="border"/>
+  <a xlink:href="{link_url}" target="_blank">
+    <rect width="220" height="80" rx="10" class="bg"/>
+    <rect width="220" height="80" rx="10" class="border"/>
 
-  <!-- Score ring -->
-  <circle cx="{cx}" cy="{cy}" r="{r}" class="ring-bg"/>
-  <circle cx="{cx}" cy="{cy}" r="{r}" class="ring"/>
-  <text x="{cx}" y="{cy - 4}" class="score-num">{score}</text>
-  <text x="{cx}" y="{cy + 11}" class="grade">{grade}</text>
+    <!-- Score ring -->
+    <circle cx="{cx}" cy="{cy}" r="{r}" class="ring-bg"/>
+    <circle cx="{cx}" cy="{cy}" r="{r}" class="ring"/>
+    <text x="{cx}" y="{cy - 4}" class="score-num">{score}</text>
+    <text x="{cx}" y="{cy + 11}" class="grade">{grade}</text>
 
-  <!-- Right side text -->
-  <text x="78" y="18" class="brand">⬡ galuli</text>
-  <text x="78" y="34" class="domain">{display_domain}</text>
-  <text x="78" y="50" class="label">AI Readiness Score</text>
-  <text x="78" y="66" class="label" style="fill: {fill_color}; font-weight: 700;">{label}</text>
+    <!-- Right side text -->
+    <text x="78" y="18" class="brand">⬡ galuli</text>
+    <text x="78" y="34" class="domain">{display_domain}</text>
+    <text x="78" y="50" class="label">AI Readiness Score</text>
+    <text x="78" y="66" class="label" style="fill: {fill_color}; font-weight: 700;">{label}</text>
+    <text x="212" y="72" class="cta">Check yours →</text>
+  </a>
 </svg>"""
     return svg
 

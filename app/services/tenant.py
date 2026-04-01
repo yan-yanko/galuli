@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 PLAN_LIMITS = {
     "free":       {"domains": 3,   "rate_per_min": 10,  "requests_today": 50,    "js_enabled": 0},
-    "starter":    {"domains": 1,   "rate_per_min": 30,  "requests_today": 500,   "js_enabled": 1},
+    "starter":    {"domains": 3,   "rate_per_min": 30,  "requests_today": 500,   "js_enabled": 1},
     "pro":        {"domains": 10,  "rate_per_min": 60,  "requests_today": 2000,  "js_enabled": 1},
     "agency":     {"domains": 999, "rate_per_min": 300, "requests_today": 50000, "js_enabled": 1},
     "enterprise": {"domains": 999, "rate_per_min": 300, "requests_today": 50000, "js_enabled": 1},

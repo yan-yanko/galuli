@@ -302,11 +302,11 @@ function InteractiveDemo() {
 
 // ── FAQ ───────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { q: "Why does AI visibility matter?", a: "AI search engines like ChatGPT and Perplexity now handle billions of queries. Traffic from AI converts 5x better than Google. If your site isn't readable by AI, you're missing this traffic." },
-  { q: "Which AI systems does Galuli work with?", a: "Six: ChatGPT, Perplexity, Claude, Gemini, Grok, and Llama. Each reads websites differently. Galuli optimizes for all of them." },
-  { q: "Is Galuli free?", a: "Yes. Scan any site for free, no account needed. The free plan includes scores, audits, and analytics. Paid plans start at $9/mo for continuous monitoring and Content Doctor." },
-  { q: "How is this different from SEO tools?", a: "SEO tools help you rank in Google. Galuli helps you get cited in AI answers. You can rank #1 in Google and be completely invisible to ChatGPT." },
-  { q: "Do I need to change my website code?", a: "No. Galuli works by adding one script tag to your site. Everything else is automatic — no backend changes, no code rewrites, no developer needed." },
+  { q: "Why does AI visibility matter?", a: "63% of buyers now ask AI before searching Google. When someone asks ChatGPT for a recommendation in your space, you're either in the answer or you're not. Traffic from AI converts 5x better than Google — but only if AI can find and understand your site." },
+  { q: "Which AI systems does Galuli work with?", a: "All six major ones: ChatGPT, Perplexity, Claude, Gemini, Grok, and Llama. Each reads websites differently. Galuli optimizes for all of them so you're visible everywhere your customers are asking." },
+  { q: "Is Galuli free?", a: "Yes. Scan any site for free, no account needed. The free plan includes scores, audits, and analytics. Paid plans start at $29/mo for continuous monitoring, Content Doctor, and auto-generated AI files." },
+  { q: "How is this different from SEO tools?", a: "SEO tools help you rank in Google. Galuli helps you get recommended by AI. You can rank #1 in Google and be completely invisible to ChatGPT — they're different systems with different rules." },
+  { q: "Do I need a developer?", a: "No. Galuli works by adding one script tag to your site — same as adding Google Analytics. Everything else is automatic. No backend changes, no code rewrites, no technical knowledge needed." },
 ]
 
 function FaqAccordion() {
@@ -342,11 +342,13 @@ function FaqAccordion() {
 
 // ── Landing Page ──────────────────────────────────────────────────────────────
 export function LandingPage({ onScanComplete, onAuthRequired }) {
-  const [url, setUrl] = useState('')
+  const refDomain = useRef(new URLSearchParams(window.location.search).get('ref') || '').current
+  const [url, setUrl] = useState(refDomain)
   const [stage, setStage] = useState('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
   const inputRef = useRef()
+  const autoScanned = useRef(false)
 
   // Bottom CTA beta signup
   const [betaEmail, setBetaEmail] = useState('')
@@ -370,7 +372,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
   const STAGES = ['Crawling your pages…','Running AI analysis (4 passes)…','Extracting capabilities…','Calculating AI Readiness Score…','Almost done…']
 
   const handleScan = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     const trimmed = url.trim()
     if (!trimmed) return
     const fullUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
@@ -414,6 +416,14 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
     } catch (err) { setStage('error'); setError(err.message || 'Scan failed') }
   }
 
+  // Auto-scan when arriving from a badge click (?ref=domain)
+  useEffect(() => {
+    if (refDomain && !autoScanned.current) {
+      autoScanned.current = true
+      handleScan()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
       <LandingNav onSignIn={onAuthRequired} />
@@ -430,19 +440,19 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>· Limited access · Every signup reviewed personally</div>
             </div>
             <h1 style={{ fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 22, color: 'var(--text)' }}>
-              AI can't cite you<br />
-              <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>if it can't find you.</span>
+              Be seen by AI,<br />
+              <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>not just Google.</span>
             </h1>
             <p style={{ fontSize: 18, color: 'var(--subtle)', lineHeight: 1.7, marginBottom: 28, maxWidth: 480 }}>
-              ChatGPT, Perplexity, and Claude recommend products every day. If your website isn't readable by AI, you're invisible in those answers. Galuli shows you why — and fixes it automatically.
+              Your customers are asking ChatGPT, Perplexity, and Claude for recommendations — not Google. If your website isn't optimized for AI, you're invisible where it matters most. Galuli shows exactly where you stand and fixes it automatically.
             </p>
 
             {/* Bullets */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
               {[
-                { label: 'Free instant scan.', detail: 'See how AI reads your website right now — in 10 seconds.' },
-                { label: 'Clear action items.', detail: 'Not vague advice. Specific things to fix, with how-to links.' },
-                { label: 'One script tag.', detail: 'Install once. Galuli monitors and fixes things continuously.' },
+                { label: 'Know your AI score in 60 seconds.', detail: 'See exactly where you stand across ChatGPT, Claude, Perplexity, and 3 more AI engines.' },
+                { label: 'Get cited, not just indexed.', detail: 'Galuli fixes the specific issues that stop AI from recommending you.' },
+                { label: 'One script tag. No developer needed.', detail: 'Install once. Galuli monitors your site and keeps AI systems up to date automatically.' },
               ].map(({ label, detail }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15 }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(94,106,210,0.12)', border: '1px solid rgba(94,106,210,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontWeight: 800, fontSize: 10, flexShrink: 0, marginTop: 1 }}>✓</div>
@@ -525,8 +535,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div className="eyebrow">Why Galuli is different</div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.1 }}>Most tools track AI visibility.<br />Galuli fixes it.</h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 12 }}>Other tools tell you where you rank. Galuli finds what's broken and fixes it automatically.</p>
+            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.1 }}>Other tools tell you the problem.<br />Galuli fixes it.</h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 12 }}>Most AI visibility tools charge you to see a dashboard. Galuli actually makes your site readable and citable by AI.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: 0, alignItems: 'start' }}>
             <div style={{ paddingRight: 32 }}>
@@ -566,8 +576,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 32px' }}>
         <div style={{ marginBottom: 32 }}>
           <div className="eyebrow">How it works</div>
-          <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>From invisible to cited in three steps</h2>
-          <p style={{ fontSize: 16, color: 'var(--subtle)' }}>One script tag. Galuli handles everything else.</p>
+          <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>From invisible to recommended in three steps</h2>
+          <p style={{ fontSize: 16, color: 'var(--subtle)' }}>No developers needed. No code changes. One script tag and Galuli handles the rest.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 1, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--border)' }}>
           {[
@@ -592,13 +602,13 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
             <div>
               <div className="eyebrow">The invisible website problem</div>
               <h2 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 16, lineHeight: 1.1 }}>
-                Most websites are invisible to AI.
+                Your customers ask AI now. Not Google.
               </h2>
               <p style={{ color: 'var(--subtle)', fontSize: 16, lineHeight: 1.8, marginBottom: 14 }}>
-                Modern websites use JavaScript to show content. The problem: AI systems like ChatGPT and Perplexity <strong style={{ color: 'var(--text)', fontWeight: 600 }}>can't run JavaScript</strong> — so they visit your site and see a blank page.
+                When someone asks ChatGPT "best {'{'}your category{'}'}", AI visits your website to decide if it should recommend you. The problem: most websites <strong style={{ color: 'var(--text)', fontWeight: 600 }}>look like a blank page to AI</strong> — so it skips you entirely.
               </p>
               <p style={{ color: 'var(--subtle)', fontSize: 16, lineHeight: 1.8, marginBottom: 24 }}>
-                Galuli captures what your real visitors see and serves it to AI in a format they can read. No code changes needed.
+                Galuli makes your site readable to every major AI system. No code changes. No developers. Just one script tag.
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
@@ -626,8 +636,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ marginBottom: 32 }}>
             <div className="eyebrow">What's included</div>
-            <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>Everything AI needs<br />to read your site.</h2>
-            <p style={{ fontSize: 16, color: 'var(--subtle)' }}>One script tag. Every feature activates automatically — no config, no backend changes.</p>
+            <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>Everything you need<br />to get cited by AI.</h2>
+            <p style={{ fontSize: 16, color: 'var(--subtle)' }}>One script tag. Every feature activates automatically — no config, no developers, no backend changes.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 1, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--border)' }}>
             {[
@@ -653,8 +663,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           <div style={{ marginBottom: 28 }}>
             <div className="eyebrow">AI Readiness Score</div>
-            <h2 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>How readable is your website to AI?</h2>
-            <p style={{ fontSize: 16, color: 'var(--subtle)' }}>A simple 0–100 score. The higher you score, the more likely AI systems are to recommend you.</p>
+            <h2 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8, lineHeight: 1.1 }}>Your AI Readiness Score</h2>
+            <p style={{ fontSize: 16, color: 'var(--subtle)' }}>A simple 0–100 score that tells you how likely AI systems are to recommend your business. The higher you score, the more you get cited.</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             {[
@@ -714,7 +724,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <a href="/pricing" className="btn btn-primary">See Agency pricing →</a>
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Unlimited domains · $799/yr · White-glove onboarding</span>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Unlimited domains · $199/mo · Dedicated support</span>
           </div>
         </div>
       </div>
@@ -724,8 +734,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <GaluMascot size={72} mood="default" style={{ marginBottom: 20, display: 'inline-block' }} />
           <div className="badge badge-purple" style={{ fontSize: 11, marginBottom: 16, display: 'inline-block' }}>Private Beta</div>
-          <h2 style={{ fontSize: 'clamp(30px, 3.5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 12, color: 'var(--text)', lineHeight: 1.1 }}>Ready to join?</h2>
-          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Drop your email. Free forever, no credit card. You'll get personal onboarding — not a drip campaign.</p>
+          <h2 style={{ fontSize: 'clamp(30px, 3.5vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 12, color: 'var(--text)', lineHeight: 1.1 }}>Your AI score in 60 seconds.</h2>
+          <p style={{ fontSize: 17, color: 'var(--subtle)', marginBottom: 28 }}>Scan any site for free. No credit card, no commitment. See exactly how AI reads your website — and what to fix.</p>
           {betaDone ? (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'rgba(74,173,82,0.08)', border: '1px solid rgba(74,173,82,0.25)', borderRadius: 8, fontSize: 14, color: 'var(--green)', fontWeight: 600 }}>
               <span style={{ fontSize: 18 }}>✓</span> You're on the list — we'll be in touch soon.
@@ -815,7 +825,7 @@ export function ResultsPage({ data, onRegistered }) {
 
   const gradeColor = score.total >= 70 ? 'var(--green)' : score.total >= 50 ? 'var(--yellow)' : 'var(--red)'
   const badgeUrl = `${API_BASE}/api/v1/score/${domain}/badge`
-  const badgeCode = `<a href="https://galuli.io" title="AI Readiness Score">\n  <img src="${badgeUrl}" alt="Galuli AI Readiness Score" />\n</a>`
+  const badgeCode = `<a href="https://galuli.io/?ref=${domain}&utm_source=badge&utm_medium=embed&utm_campaign=score_badge" target="_blank" title="AI Readiness Score">\n  <img src="${badgeUrl}" alt="Galuli AI Readiness Score" />\n</a>`
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
@@ -962,7 +972,7 @@ export function ResultsPage({ data, onRegistered }) {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <div style={{ fontWeight: 600, fontSize: 13 }}>What Starter unlocks</div>
-            <span className="badge badge-purple">from $9/mo</span>
+            <span className="badge badge-purple">from $29/mo</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
             {[

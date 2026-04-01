@@ -1560,7 +1560,7 @@ function ContentDoctorPage() {
             Finds every claim, paragraph, and assertion that AI won't trust — and gives you the specific rewrite. Not generic SEO advice. Actual fixes that make your content readable and citable by LLMs.
           </p>
           <a href="https://galuli.io/checkout/buy/8bc3ebee-b31d-43ee-bbcc-5b47ba3b0022" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ fontSize: 14, padding: '10px 24px' }}>
-            Upgrade to Starter — $9/mo →
+            Upgrade to Starter — $29/mo →
           </a>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>
             Free scan available on the <a href="/" style={{ color: 'var(--accent)' }}>homepage</a> · No credit card to try
@@ -2469,7 +2469,7 @@ function UpgradeCTAs({ plan, email }) {
         <div style={{ background: 'linear-gradient(135deg, var(--accent)12, var(--accent2)12)', border: '1px solid var(--accent)30', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-              Starter — {isAnnual ? '$79/yr' : '$9/mo'}
+              Starter — {isAnnual ? '$249/yr' : '$29/mo'}
               {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>Save ~27%</span>}
             </div>
             <div style={{ fontSize: 14, color: 'var(--muted)' }}>1 site · AI traffic tracking · GEO score · Content Doctor</div>
@@ -2484,7 +2484,7 @@ function UpgradeCTAs({ plan, email }) {
       <div style={{ background: 'linear-gradient(135deg, var(--purple)10, var(--accent)10)', border: '1px solid var(--purple)30', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-            Pro — {isAnnual ? '$249/yr' : '$29/mo'}
+            Pro — {isAnnual ? '$679/yr' : '$79/mo'}
             {isAnnual && <span style={{ marginLeft: 8, fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>Save ~28%</span>}
           </div>
           <div style={{ fontSize: 14, color: 'var(--muted)' }}>10 sites · priority crawls · daily rescan · Citation Tracker</div>
@@ -2525,9 +2525,9 @@ function SettingsPage({ setPage }) {
 
   const PLAN_DETAILS = {
     free:       { label: 'Free',       color: 'var(--muted)',   price: '$0/mo',   sites: '3 sites',    rate: '10 req/min' },
-    starter:    { label: 'Starter',    color: 'var(--green)',   price: '$9/mo',   sites: '1 site',     rate: '30 req/min' },
-    pro:        { label: 'Pro',        color: 'var(--accent2)', price: '$29/mo',  sites: '10 sites',   rate: '60 req/min' },
-    agency:     { label: 'Agency',     color: 'var(--blue)',    price: '$799/yr', sites: 'Unlimited',  rate: '300 req/min' },
+    starter:    { label: 'Starter',    color: 'var(--green)',   price: '$29/mo',  sites: '3 sites',    rate: '30 req/min' },
+    pro:        { label: 'Pro',        color: 'var(--accent2)', price: '$79/mo',  sites: '10 sites',   rate: '60 req/min' },
+    agency:     { label: 'Agency',     color: 'var(--blue)',    price: '$199/mo', sites: 'Unlimited',  rate: '300 req/min' },
     enterprise: { label: 'Enterprise', color: 'var(--blue)',    price: 'Custom',  sites: 'Unlimited',  rate: '300 req/min' },
   }
 
@@ -2599,7 +2599,7 @@ function SettingsPage({ setPage }) {
             { icon: '📋', label: 'Plan & usage', sub: 'Sites used vs. limit, requests this month, plan details' },
             { icon: '🔑', label: 'API key', sub: 'Copy your key for the snippet, direct API calls, or integrations' },
             { icon: '🌐', label: 'Registered domains', sub: 'All sites sending data — with status and last-seen info' },
-            { icon: '💳', label: 'Billing', sub: 'Starter $9/mo · Pro $29/mo — powered by Lemon Squeezy' },
+            { icon: '💳', label: 'Billing', sub: 'Starter $29/mo · Pro $79/mo — powered by Lemon Squeezy' },
           ]}
           cta={true}
           onCta={() => setPage('snippet')}
@@ -3216,7 +3216,7 @@ function CitationTrackerPage() {
             ))}
           </div>
           <a href="https://galuli.io/checkout/buy/e280dc25-998e-4ca5-b224-5d6548d8f4e0" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', margin: '0 auto' }}>
-            Upgrade to Pro — $29/mo →
+            Upgrade to Pro — $79/mo →
           </a>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>Cancel anytime · No credit card until you upgrade</div>
         </div>
