@@ -1,6 +1,6 @@
 # Galuli — Claude Session Memory
 
-> Last updated: 2026-03-07
+> Last updated: 2026-04-01
 
 ---
 
@@ -330,6 +330,8 @@ Active endpoint: `GET /api/v1/score/{domain}` (handled by `app/api/routes/score.
 ### Badge
 SVG score ring (220×80), served with `Cache-Control: max-age=3600` and `Access-Control-Allow-Origin: *`.
 
+**Clickable badge** (added 2026-04-01): The entire SVG is wrapped in an `<a>` tag linking to `https://galuli.io/?ref={domain}&utm_source=badge&utm_medium=embed&utm_campaign=score_badge`. Includes a "Check yours →" micro-CTA. The landing page reads the `?ref=` query param, pre-fills the scan input, and auto-triggers a scan on load. This is the **badge flywheel** — every customer's badge drives new signups.
+
 ---
 
 ## GEO Score (services/geo.py)
@@ -376,13 +378,13 @@ Three APScheduler jobs, all started on app boot:
 ### Why LS (not Stripe)
 Stripe doesn't support Israel for payouts. LS is a Merchant of Record, handles all VAT globally.
 
-### Plans & Actual Limits
+### Plans & Actual Limits (updated 2026-04-01)
 | Plan | Monthly | Annual | Sites | Rate/min | Req/day | JS |
 |---|---|---|---|---|---|---|
 | Free | $0 | — | 3 | 10 | 50 | ✗ |
-| Starter | $9 | $79 | 1 | 30 | 500 | ✓ |
-| Pro | $29 | $249 | 10 | 60 | 2,000 | ✓ |
-| Agency | $799/yr | — | ∞ | 300 | 50,000 | ✓ |
+| Starter | $29 | $249 | 3 | 30 | 500 | ✓ |
+| Pro | $79 | $679 | 10 | 60 | 2,000 | ✓ |
+| Agency | $199 | $1,990 | ∞ | 300 | 50,000 | ✓ |
 | Enterprise | Custom | — | ∞ | 300 | 50,000 | ✓ |
 
 Source of truth: `PLAN_LIMITS` dict in `app/services/tenant.py`.
@@ -390,10 +392,10 @@ Source of truth: `PLAN_LIMITS` dict in `app/services/tenant.py`.
 ### Lemon Squeezy Variant IDs (Railway env vars)
 | Var | Value | Description |
 |---|---|---|
-| `LS_VARIANT_STARTER` | 1353618 | Starter $9/mo |
-| `LS_VARIANT_PRO` | 1353606 | Pro $29/mo |
-| `LS_VARIANT_STARTER_ANNUAL` | 1353121 | Starter $79/yr |
-| `LS_VARIANT_PRO_ANNUAL` | *(not set yet)* | Pro $249/yr — **TODO: create in LS** |
+| `LS_VARIANT_STARTER` | 1353618 | Starter $29/mo |
+| `LS_VARIANT_PRO` | 1353606 | Pro $79/mo |
+| `LS_VARIANT_STARTER_ANNUAL` | 1353121 | Starter $249/yr |
+| `LS_VARIANT_PRO_ANNUAL` | *(not set yet)* | Pro $679/yr — **TODO: create in LS** |
 
 ### Checkout URLs (in App.jsx → LS_URLS)
 ```js
@@ -528,11 +530,11 @@ const VALID_PAGES = ['overview','score','geo','analytics','content-doctor',
 ### Plan display constants (PLAN_DETAILS in App.jsx)
 ```js
 const PLAN_DETAILS = {
-  free:       { label: 'Free',       price: '$0/mo',    sites: '3 sites',   rate: '10 req/min' },
-  starter:    { label: 'Starter',    price: '$9/mo',    sites: '1 site',    rate: '30 req/min' },
-  pro:        { label: 'Pro',        price: '$29/mo',   sites: '10 sites',  rate: '60 req/min' },
-  agency:     { label: 'Agency',     price: '$799/yr',  sites: 'Unlimited', rate: '300 req/min' },
-  enterprise: { label: 'Enterprise', price: 'Custom',   sites: 'Unlimited', rate: '300 req/min' },
+  free:       { label: 'Free',       price: '$0/mo',   sites: '3 sites',   rate: '10 req/min' },
+  starter:    { label: 'Starter',    price: '$29/mo',  sites: '3 sites',   rate: '30 req/min' },
+  pro:        { label: 'Pro',        price: '$79/mo',  sites: '10 sites',  rate: '60 req/min' },
+  agency:     { label: 'Agency',     price: '$199/mo', sites: 'Unlimited', rate: '300 req/min' },
+  enterprise: { label: 'Enterprise', price: 'Custom',  sites: 'Unlimited', rate: '300 req/min' },
 }
 ```
 
@@ -540,8 +542,8 @@ const PLAN_DETAILS = {
 ```jsx
 function UpgradeCTAs({ plan, email }) {
   const [billing, setBilling] = useState('monthly')
-  // Monthly/annual toggle — annual shows "Save ~27%" (Starter) / "Save ~28%" (Pro)
-  // Starter: $9/mo or $79/yr | Pro: $29/mo or $249/yr
+  // Monthly/annual toggle — annual shows "Save ~28%" for both tiers
+  // Starter: $29/mo or $249/yr | Pro: $79/mo or $679/yr
   // Visible to free and starter plans only
 }
 ```
@@ -565,14 +567,19 @@ function UpgradeCTAs({ plan, email }) {
 
 ```
 LandingPage (Landing.jsx):
-├── Hero section (headline, subheadline, scan input, buttons)
-├── Trust strip (logo strip)
-├── SimilarWeb callout banner (Reuters/Fox News stat — added 2026-03-06)
-│   "Reuters (1.5M searches/mo) outranks Fox News (42M) in AI citations."
-│   Source link → SimilarWeb 2026 GenAI Brand Visibility Index
-├── "How it works" section
-├── Features grid
-├── Bottom CTA section (GaluMascot size=72 + "Ready to join?" + sign-up button)
+├── Hero section (H1: "Be seen by AI, not just Google." + scan input)
+│   Auto-scan: reads ?ref= query param from badge clicks, auto-triggers scan
+├── Stats strip (14.2% conversion, 63% buyers ask AI first, +35% mentions, 76.4% cited pages)
+├── Trust strip (AI engine logos)
+├── SimilarWeb callout banner (Reuters/Fox News stat)
+├── Contrast section ("Other tools tell you the problem. Galuli fixes it.")
+├── "How it works" section ("From invisible to recommended in three steps")
+├── "The invisible website problem" section ("Your customers ask AI now. Not Google.")
+├── Features grid ("Everything you need to get cited by AI.")
+├── Score scale (AI Readiness Score 0–100 breakdown)
+├── FAQ (5 items, SMB-focused)
+├── For agencies section (Agency $199/mo)
+├── Bottom CTA section (GaluMascot + "Your AI score in 60 seconds.")
 └── Footer
 ```
 
@@ -584,7 +591,7 @@ LandingPage (Landing.jsx):
 ```python
 PLAN_LIMITS = {
   "free":       {"domains": 3,   "rate_per_min": 10,  "requests_today": 50,    "js_enabled": 0},
-  "starter":    {"domains": 1,   "rate_per_min": 30,  "requests_today": 500,   "js_enabled": 1},
+  "starter":    {"domains": 3,   "rate_per_min": 30,  "requests_today": 500,   "js_enabled": 1},
   "pro":        {"domains": 10,  "rate_per_min": 60,  "requests_today": 2000,  "js_enabled": 1},
   "agency":     {"domains": 999, "rate_per_min": 300, "requests_today": 50000, "js_enabled": 1},
   "enterprise": {"domains": 999, "rate_per_min": 300, "requests_today": 50000, "js_enabled": 1},
@@ -723,6 +730,39 @@ Railway mounts volumes at **runtime** with root ownership. A non-root user (e.g.
 ---
 
 ## Change Log
+
+### 2026-04-01 — GTM launch: badge flywheel + pricing update + SMB messaging (commit `29efb8d`)
+
+#### Badge flywheel (viral distribution engine)
+| File | Change |
+|---|---|
+| `app/api/routes/score.py` | Badge SVG now wraps all content in `<a>` linking to `galuli.io/?ref={domain}&utm_source=badge&utm_medium=embed&utm_campaign=score_badge`. Added "Check yours →" micro-CTA in badge corner. |
+| `dashboard/src/Landing.jsx` | Badge embed code in ResultsPage includes clickable link with UTM params. Landing page reads `?ref=` query param, pre-fills scan input, auto-triggers scan on load. |
+
+#### Pricing update ($29/$79/$199)
+| File | Change |
+|---|---|
+| `app/services/tenant.py` | `PLAN_LIMITS`: Starter domains 1 → 3 |
+| `dashboard/src/App.jsx` | `PLAN_DETAILS`: Starter $9→$29, Pro $29→$79, Agency $799/yr→$199/mo. Updated UpgradeCTAs display ($29/$249yr, $79/$679yr). Updated Content Doctor paywall CTA, Citations paywall CTA, Settings billing description. |
+| `dashboard/src/Pricing.jsx` | Full pricing page rebuilt: Starter $29 (3 sites), Pro $79 (10 sites, +competitor tracking, +Content Doctor), Agency $199/mo (was $799/yr). Updated comparison table with Content Doctor and competitor tracking rows. |
+| `dashboard/src/Landing.jsx` | Updated FAQ "$29/mo", ResultsPage "from $29/mo", agency section "$199/mo". |
+
+**Note:** Code-side pricing is updated. Lemon Squeezy variants still have old prices — need to create new LS variants and update checkout URLs.
+
+#### SMB messaging overhaul
+| File | Section | Before | After |
+|---|---|---|---|
+| `Landing.jsx` | Hero H1 | "AI can't cite you if it can't find you." | "Be seen by AI, not just Google." |
+| `Landing.jsx` | Hero sub | ChatGPT/Perplexity/Claude recommend products... | Your customers are asking ChatGPT... not Google. |
+| `Landing.jsx` | Bullets | Free instant scan / Clear action items / One script tag | Know your AI score in 60 seconds / Get cited, not just indexed / One script tag. No developer needed. |
+| `Landing.jsx` | Contrast H2 | "Most tools track AI visibility. Galuli fixes it." | "Other tools tell you the problem. Galuli fixes it." |
+| `Landing.jsx` | Invisible section | "Most websites are invisible to AI." | "Your customers ask AI now. Not Google." |
+| `Landing.jsx` | Features H2 | "Everything AI needs to read your site." | "Everything you need to get cited by AI." |
+| `Landing.jsx` | Score scale H2 | "How readable is your website to AI?" | "Your AI Readiness Score" |
+| `Landing.jsx` | FAQ | Generic AI visibility framing | Leads with 63% of buyers, 5x conversion, "Do I need a developer?" |
+| `Landing.jsx` | Bottom CTA | "Ready to join?" | "Your AI score in 60 seconds." |
+
+---
 
 ### 2026-03-07 — Competitive positioning update (commits `d38a70a`, `0f3d901`, `9dc0078`)
 
@@ -910,15 +950,16 @@ All critical issues fixed before launch. Committed in two batches:
 ### Agency feedback (in progress)
 1. **Case study block** — Yan doing manually: one real before/after (domain, score change, measurable outcome like "now cited in Perplexity for [keyword]"). Will be added as a new section in `Landing.jsx`.
 
-### Pricing (validated by competitive analysis)
-2. **Raise prices** — market validates $490–$1,990/yr for competitors with less functionality. Recommended: Starter $9/mo → $19–29/mo, Pro $29/mo → $59–79/mo. Agency $799/yr is competitive. Change in `PLAN_DETAILS` in `App.jsx`, `PLAN_LIMITS` in `tenant.py`, and LS checkout variants.
+### Pricing (partially done — 2026-04-01)
+~~2. **Raise prices**~~ — **DONE in code.** Starter $29/mo, Pro $79/mo, Agency $199/mo. Updated in `PLAN_DETAILS`, `PLAN_LIMITS`, `Pricing.jsx`, `Landing.jsx`. **Still TODO:** update actual Lemon Squeezy variant prices in the LS dashboard to match the new amounts, and create new LS checkout URLs for the updated tiers.
 
 ### Product roadmap (from competitive analysis)
 3. **Self-serve prompt tracking** — add to Citation Tracker: user enters a query (e.g. "best CRM for agencies"), Galuli runs it weekly across all 6 AI engines, shows trend over time. This is the retention hook every competitor uses. Currently `citation_tracker.py` does this but it's not self-serve enough.
 
 ### Billing
-2. **Pro annual variant** — create "$249/yr" variant in Lemon Squeezy, get checkout URL and variant ID, paste into `LS_URLS.pro_annual` in `App.jsx` and set `LS_VARIANT_PRO_ANNUAL` Railway env var
-3. **Starter annual URL** — create "$79/yr" variant in LS (variant ID 1353121 exists), paste checkout URL into `LS_URLS.starter_annual` in `App.jsx`
+2. **Update LS variants** — Lemon Squeezy still has old prices ($9/$29). Create new variants at $29/$79/$199 in LS dashboard, get new checkout URLs, and update `LS_URLS` in `App.jsx`.
+3. **Pro annual variant** — create "$679/yr" variant in Lemon Squeezy, get checkout URL and variant ID, paste into `LS_URLS.pro_annual` in `App.jsx` and set `LS_VARIANT_PRO_ANNUAL` Railway env var
+4. **Starter annual URL** — create "$249/yr" variant in LS, paste checkout URL into `LS_URLS.starter_annual` in `App.jsx`
 
 ### QA / ops
 4. **Manual QA** — test galuli.js snippet install end-to-end on each major platform type (HTML, WordPress, Next.js SPA), LS checkout flow, magic link email delivery
@@ -951,10 +992,8 @@ These are not urgent bugs but are real risks as the product scales.
 - The × delete button gates on API key but the list itself is global
 - **Fix:** Change OverviewPage to use `api.getMyDomains()` + load scores only for those domains
 
-### 🟡 Starter plan limit of 1 site is aggressive
-- Most small businesses have staging + production, or multiple projects
-- May be blocking conversions from Free → Starter
-- Consider raising to 3 sites, or adding a $14/mo "Growth" tier between Starter and Pro
+### ~~🟡 Starter plan limit of 1 site is aggressive~~ — RESOLVED 2026-04-01
+- Raised Starter from 1 site → 3 sites in the pricing update.
 
 ### 🟡 Citation Tracker data quality
 - Perplexity citations are reasonably traceable via Sonar API
