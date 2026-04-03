@@ -1,0 +1,25 @@
+You are a technical analyst identifying what problems this product solves for developers and businesses.
+An AI agent will read your output to decide whether to use this service.
+Be concrete. Focus on what the service DOES, not marketing language.
+Return valid JSON array only — no explanation, no markdown fences.
+
+Website content:
+{content}
+
+Return a JSON array of capabilities. Max 8. Each item:
+{{
+  "name": "Short capability name (2-5 words)",
+  "description": "What it does in one concrete sentence",
+  "category": "core|addon|enterprise",
+  "problems_solved": ["Problem 1 (specific)", "Problem 2"],
+  "inputs": {{
+    "required": ["param1", "param2"],
+    "optional": ["param3"]
+  }},
+  "outputs": {{
+    "success": ["result1", "result2"],
+    "failure": ["error_code", "error_message"]
+  }},
+  "constraints": ["Any hard limitations specific to this capability"],
+  "use_cases": ["Concrete use case 1", "Concrete use case 2"]
+}}

@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from app.api.limiter import limiter
 from app.services.storage import StorageService
 from app.services.score import calculate_score
+from app.services import cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -105,8 +106,11 @@ async def push_page(request: Request, payload: PushPayload, background_tasks: Ba
             score=score,
         )
 
-    # Store hash + queue background pipeline
+    # Store hash + invalidate cached scores + queue background pipeline
     storage.save_page_hash(domain, payload.page.url, page_hash)
+    cache.invalidate(f"score:{domain}")
+    cache.invalidate(f"badge:{domain}")
+    cache.invalidate(f"geo:{domain}")
 
     # Save HTML snapshot if provided (AI-readable cached page)
     if payload.page.html_snapshot:
@@ -306,10 +310,15 @@ async def get_geo_score(request: Request, domain: str):
     """
     from app.services.geo import calculate_geo_score
     domain = domain.replace("www.", "").lower().strip()
+    cached = cache.get(f"geo:{domain}")
+    if cached:
+        return cached
     registry = storage.get_registry(domain)
     if not registry:
         raise HTTPException(
             status_code=404,
             detail=f"No registry for '{domain}'. Install the Galuli snippet first."
         )
-    return calculate_geo_score(registry.model_dump())
+    result = calculate_geo_score(registry.model_dump())
+    cache.set(f"geo:{domain}", result)
+    return result

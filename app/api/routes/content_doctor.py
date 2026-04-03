@@ -64,7 +64,7 @@ async def analyze_content(payload: AnalyzeContentRequest, request: Request):
 
     try:
         doctor = ContentDoctorService()
-        result = doctor.full_diagnosis(payload.content, url=payload.url or "")
+        result = await doctor.full_diagnosis(payload.content, url=payload.url or "")
         return result
     except Exception as e:
         logger.error(f"Content analysis failed: {e}")
@@ -108,11 +108,11 @@ async def analyze_url(payload: AnalyzeUrlRequest, request: Request):
         mode = payload.mode or "full"
 
         if mode == "authority":
-            result = doctor.analyze_authority_gaps(content, url)
+            result = await doctor.analyze_authority_gaps(content, url)
         elif mode == "structure":
-            result = doctor.analyze_structure(content, url)
+            result = await doctor.analyze_structure(content, url)
         else:
-            result = doctor.full_diagnosis(content, url)
+            result = await doctor.full_diagnosis(content, url)
 
         return result
     except Exception as e:
@@ -135,7 +135,7 @@ async def domain_report(domain: str, request: Request):
 
     try:
         doctor = ContentDoctorService()
-        result = doctor.analyze_from_registry(domain)
+        result = await doctor.analyze_from_registry(domain)
 
         if result.get("error") and not result.get("pages"):
             raise HTTPException(status_code=404, detail=result["error"])

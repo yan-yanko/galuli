@@ -1,0 +1,33 @@
+You are extracting structured business information from website content.
+Extract ONLY what is explicitly stated. Use null for unknown fields.
+Return valid JSON only — no explanation, no markdown fences.
+
+Website content (multiple pages):
+{content}
+
+Return this exact JSON structure:
+{{
+  "name": "Company/product name",
+  "description": "One sentence value proposition (what it does and for whom)",
+  "category": "One of: fintech|devtools|ai|analytics|infrastructure|ecommerce|hr|crm|security|communication|productivity|other",
+  "sub_categories": ["tag1", "tag2"],
+  "headquarters": "City, Country or null",
+  "founded_year": 2015,
+  "company_size": "startup|smb|enterprise or null",
+  "website_url": "https://...",
+  "logo_url": "https://... or null",
+  "support_url": "https://support.example.com or null",
+  "docs_url": "https://docs.example.com or null",
+  "api_base_url": "https://api.example.com or null (infer from docs URLs, code examples, or SDK documentation even if not explicitly stated as 'API base URL')",
+  "api_version": "v2 or null",
+  "auth_methods": ["api_key", "oauth2", "basic_auth"],
+  "auth_notes": "How auth works in one sentence or null",
+  "sdks": [
+    {{"language": "Python", "package_name": "stripe", "install_command": "pip install stripe", "docs_url": null}}
+  ],
+  "webhooks_supported": false,
+  "webhook_docs_url": null,
+  "status_page_url": "https://status.example.com or null",
+  "pricing_page_url": "https://example.com/pricing or null",
+  "openapi_url": null
+}}

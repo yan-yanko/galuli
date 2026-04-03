@@ -1,0 +1,27 @@
+Extract pricing information from this content. Be precise about numbers.
+Use null for truly unknown values. Do NOT hallucinate prices.
+Return valid JSON only — no explanation, no markdown fences.
+
+Content:
+{content}
+
+Return:
+{{
+  "model": "per_transaction|subscription|usage_based|freemium|free|contact_sales|unknown",
+  "has_free_tier": true,
+  "contact_sales_required": false,
+  "tiers": [
+    {{
+      "name": "Starter",
+      "price_per_unit": 29.00,
+      "unit": "per_month|per_seat|per_transaction|per_call|per_1k_tokens|other",
+      "plus_fixed": null,
+      "currency": "USD",
+      "contact_sales": false,
+      "description": "Human-readable summary of what this tier includes"
+    }}
+  ],
+  "free_tier_details": "What the free tier includes, or null",
+  "pricing_page_url": "https://... or null",
+  "pricing_notes": "Important caveats (e.g. annual billing required, regional pricing) or null"
+}}

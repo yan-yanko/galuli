@@ -10,6 +10,7 @@ from fastapi.responses import Response
 
 from app.api.limiter import limiter
 from app.services.storage import StorageService
+from app.services import cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -282,6 +283,9 @@ async def get_score(request: Request, domain: str):
     - confidence + pages crawled metadata
     """
     domain = domain.replace("www.", "").lower().strip()
+    cached = cache.get(f"score:{domain}")
+    if cached:
+        return cached
     storage = StorageService()
     registry = storage.get_registry(domain)
     if not registry:
@@ -293,7 +297,9 @@ async def get_score(request: Request, domain: str):
             },
         )
     score = _compute_score(registry)
-    return {"domain": domain, **score}
+    result = {"domain": domain, **score}
+    cache.set(f"score:{domain}", result)
+    return result
 
 
 @router.get("/{domain}/suggestions", summary="Improvement suggestions for AI Readiness Score")
@@ -333,6 +339,9 @@ async def get_badge(request: Request, domain: str):
       </a>
     """
     domain = domain.replace("www.", "").lower().strip()
+    cached_svg = cache.get(f"badge:{domain}")
+    if cached_svg:
+        return cached_svg
     storage = StorageService()
     registry = storage.get_registry(domain)
     if not registry:
@@ -341,7 +350,7 @@ async def get_badge(request: Request, domain: str):
     score = _compute_score(registry)
     svg = _make_badge_svg(domain, score["total"], score["grade"], score["label"])
 
-    return Response(
+    response = Response(
         content=svg,
         media_type="image/svg+xml",
         headers={
@@ -350,3 +359,5 @@ async def get_badge(request: Request, domain: str):
             "X-Grade": score["grade"],
         },
     )
+    cache.set(f"badge:{domain}", response)
+    return response

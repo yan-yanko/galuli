@@ -1,0 +1,32 @@
+Extract operational constraints, limitations, and restrictions from this content.
+An AI agent needs this to know what it cannot do with this service.
+Be precise. Use empty arrays for unknown fields. Do NOT make up limits.
+Return valid JSON only — no explanation, no markdown fences.
+
+Content:
+{content}
+
+Return:
+{{
+  "rate_limits": [
+    {{"scope": "API requests", "limit": 100, "window": "per_second", "notes": "..."}}
+  ],
+  "geographic_restrictions": [
+    {{
+      "type": "availability",
+      "regions_available": ["US", "EU", "UK"],
+      "regions_restricted": ["CN", "RU"],
+      "notes": "Additional notes or null"
+    }}
+  ],
+  "data_formats": {{
+    "input": ["JSON", "XML", "CSV"],
+    "output": ["JSON"],
+    "encoding": "UTF-8"
+  }},
+  "sla_uptime_percent": 99.9,
+  "known_constraints": [
+    "Maximum file size 100MB",
+    "Webhooks require HTTPS endpoints"
+  ]
+}}
