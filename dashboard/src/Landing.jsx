@@ -21,18 +21,6 @@ async function pollJob(jobId) {
   return res.json()
 }
 
-async function getScore(domain) {
-  const res = await fetch(`${API_BASE}/api/v1/score/${domain}`)
-  if (!res.ok) throw new Error('Score not found')
-  return res.json()
-}
-
-async function getRegistry(domain) {
-  const res = await fetch(`${API_BASE}/registry/${domain}`)
-  if (!res.ok) throw new Error('Registry not found')
-  return res.json()
-}
-
 // ── Shared ────────────────────────────────────────────────────────────────────
 export function ScoreRingLanding({ score, size = 80, accentColor }) {
   const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 55 ? 'C' : score >= 40 ? 'D' : 'F'
@@ -70,6 +58,7 @@ function LandingNav({ onSignIn }) {
       </a>
       <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
         <div className="nav-links-desktop" style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <a href="/leaderboard" className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>Leaderboard</a>
           <a href="/blog"    className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>Blog</a>
           <a href="/about"   className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>About</a>
           <a href="/pricing" className="btn btn-ghost btn-sm" style={{ color: 'var(--subtle)' }}>Pricing</a>
@@ -381,13 +370,8 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
       const job = await scanSite(fullUrl)
       const domain = job.domain
       const finishScan = async (domain) => {
-        setProgress(95)
-        const [score, registry] = await Promise.all([
-          getScore(domain).catch(() => ({ total: 0, grade: 'F', label: 'Not scored yet', dimensions: {}, suggestions: [] })),
-          getRegistry(domain).catch(() => ({ capabilities: [], metadata: {} })),
-        ])
         setProgress(100); setStage('done')
-        onScanComplete({ domain, score, registry })
+        onScanComplete(domain)
       }
       if (job.status === 'complete') { await finishScan(domain); return }
       let stageIdx = 0, fakeProgress = 8
@@ -758,7 +742,7 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
           galuli
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          {[['Pricing', '/pricing'], ['Blog', '/blog'], ['About', '/about'], ['Roadmap', '/roadmap'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
+          {[['Leaderboard', '/leaderboard'], ['Pricing', '/pricing'], ['Blog', '/blog'], ['About', '/about'], ['Roadmap', '/roadmap'], ['API', '/developers'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
             <a key={label} href={href} style={{ fontSize: 12, color: 'var(--subtle)', textDecoration: 'none' }}>{label}</a>
           ))}
           <a href="mailto:hello@galuli.io" style={{ fontSize: 12, color: 'var(--subtle)', textDecoration: 'none' }}>hello@galuli.io</a>
@@ -813,261 +797,3 @@ export function LandingPage({ onScanComplete, onAuthRequired }) {
   )
 }
 
-// ── Results Page ──────────────────────────────────────────────────────────────
-export function ResultsPage({ data, onRegistered }) {
-  const { domain, score: rawScore } = data
-  const score = { total: 0, grade: 'F', label: 'Poor AI Visibility', dimensions: {}, suggestions: [], ...rawScore }
-
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [emailDone, setEmailDone] = useState(() => !!localStorage.getItem('galuli_user'))
-  const [copied, setCopied] = useState(false)
-
-  const gradeColor = score.total >= 70 ? 'var(--green)' : score.total >= 50 ? 'var(--yellow)' : 'var(--red)'
-  const badgeUrl = `${API_BASE}/api/v1/score/${domain}/badge`
-  const badgeCode = `<a href="https://galuli.io/?ref=${domain}&utm_source=badge&utm_medium=embed&utm_campaign=score_badge" target="_blank" title="AI Readiness Score">\n  <img src="${badgeUrl}" alt="Galuli AI Readiness Score" />\n</a>`
-
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      // Derive a name from the email (e.g. "jane" from "jane@company.com")
-      const derivedName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Beta user'
-      const res = await fetch(`${API_BASE}/api/v1/tenants`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: derivedName, email: email.trim(), plan: 'free', password: null }),
-      })
-      const data = await res.json()
-      // Accept both success and "already exists" as OK — user is in the system either way
-      if (res.ok) {
-        localStorage.setItem('galuli_api_key', data.api_key)
-        localStorage.setItem('galuli_email', data.email)
-        localStorage.setItem('galuli_name', data.name)
-        localStorage.setItem('galuli_plan', data.plan || 'free')
-      }
-    } catch (_) {
-      // Fail silently — still show the thank-you (email was captured if the request went through)
-    } finally {
-      localStorage.setItem('galuli_user', JSON.stringify({ email, registered_at: new Date().toISOString() }))
-      setEmailDone(true)
-      setSubmitting(false)
-    }
-  }
-
-  const DIM_COLORS = {
-    'Content Coverage': 'var(--accent)',
-    'Structure Quality': 'var(--blue)',
-    'Machine Signals': 'var(--purple)',
-    'Authority': 'var(--green)',
-    'Freshness': 'var(--yellow)',
-  }
-  const fallbackDims = {
-    'Content Coverage': { score: 0, max: 25 },
-    'Structure Quality': { score: 0, max: 20 },
-    'Machine Signals':   { score: 0, max: 20 },
-    'Authority':         { score: 0, max: 20 },
-    'Freshness':         { score: 0, max: 15 },
-  }
-  const dims = Object.keys(score.dimensions || {}).length > 0 ? score.dimensions : fallbackDims
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-      {/* Nav */}
-      <nav style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 14, color: 'var(--text)', cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
-          <div style={{ width: 20, height: 20, background: 'var(--accent)', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'white', fontWeight: 800 }}>g</div>
-          galuli
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--subtle)' }}>
-          AI Readiness Report · <strong style={{ color: 'var(--text)' }}>{domain}</strong>
-        </div>
-        <button onClick={() => onRegistered && onRegistered()} className="btn btn-primary btn-sm">Open Dashboard →</button>
-      </nav>
-
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px 64px' }}>
-
-        {/* Score hero */}
-        <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap', borderColor: `${gradeColor}30` }}>
-          <ScoreRingLanding score={score.total} size={100} />
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtle)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>AI Readiness Score</div>
-            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.3px' }}>{score.label}</div>
-            <div style={{ fontSize: 12, color: 'var(--subtle)', marginBottom: 10 }}>{domain}</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <span className="badge badge-blue">Score: {score.total}/100</span>
-              <span className="badge" style={{ color: gradeColor, border: `1px solid ${gradeColor}40`, background: `${gradeColor}12` }}>Grade: {score.grade}</span>
-              {score.total >= 70 && <span className="badge badge-green">✓ AI-Ready</span>}
-              {score.total < 40 && <span className="badge badge-yellow">⚠ Needs Work</span>}
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--subtle)', lineHeight: 1.6, marginTop: 10 }}>
-              {score.total >= 85
-                ? "You're fully AI-readable. AI systems can cite you with confidence."
-                : score.total >= 70
-                ? "Most AI systems understand you well. You're appearing in AI answers — let's close the remaining gaps."
-                : score.total >= 55
-                ? "AI can reach you but often gets an incomplete picture. You're appearing in some answers but missing citation opportunities."
-                : score.total >= 40
-                ? "AI systems struggle to understand your site. You're likely being skipped in AI-generated answers."
-                : "AI systems cannot reliably understand your site. You're invisible in AI-generated answers right now."}
-            </p>
-          </div>
-        </div>
-
-        {/* Score breakdown */}
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>Score breakdown</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {Object.entries(dims).map(([key, dim]) => {
-              const pct = dim.max > 0 ? (dim.score / dim.max) * 100 : 0
-              const color = DIM_COLORS[key] || 'var(--accent)'
-              return (
-                <div key={key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                    <span style={{ fontWeight: 500 }}>{key}</span>
-                    <span style={{ color: 'var(--subtle)' }}>{dim.score}/{dim.max}</span>
-                  </div>
-                  <div style={{ background: 'var(--border)', borderRadius: 3, height: 4 }}>
-                    <div style={{ height: 4, borderRadius: 3, background: color, width: `${pct}%`, transition: 'width 1s ease 0.3s' }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Suggestions */}
-        {score.suggestions?.length > 0 && (
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Top improvements</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {score.suggestions.map((tip, i) => {
-                const text = typeof tip === 'string' ? tip : (tip?.issue || tip?.fix || '')
-                return (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>{i + 1}</div>
-                    <div style={{ fontSize: 12, color: 'var(--subtle)', lineHeight: 1.6, paddingTop: 1 }}>{text}</div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* What gets better */}
-        {score.total < 85 && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(94,106,210,0.06)', border: '1px solid rgba(94,106,210,0.2)', borderRadius: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1, color: 'var(--accent)' }}>↑</span>
-            <p style={{ fontSize: 13, color: 'var(--subtle)', lineHeight: 1.6, margin: 0 }}>
-              Fix the issues above and your score could reach{' '}
-              <strong style={{ color: 'var(--accent)' }}>
-                Grade {score.total >= 70 ? 'A (85+)' : score.total >= 55 ? 'B (70+)' : score.total >= 40 ? 'C (55+)' : 'D (40+)'}
-              </strong>
-              {' '}— putting you in the range where AI systems actively cite sites like yours.
-            </p>
-          </div>
-        )}
-
-        {/* Locked features */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>What Starter unlocks</div>
-            <span className="badge badge-purple">from $29/mo</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-            {[
-              { title: 'AI Attention Score', desc: 'See how much attention each AI system pays to your site.', locked: true },
-              { title: 'Content Doctor', desc: 'Find claims AI won\'t trust with specific rewrites.', locked: true },
-              { title: 'Continuous Monitoring', desc: 'Every page change triggers an automatic rescan.', locked: true },
-              { title: 'Embeddable Badge', desc: 'Show visitors you\'re AI-ready. Always live, always accurate.', locked: !emailDone },
-            ].map(({ title, desc, locked }) => (
-              <div key={title} style={{ position: 'relative', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', padding: '14px', overflow: 'hidden' }}>
-                {locked && (
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(14,14,16,0.85)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, zIndex: 2 }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 16, marginBottom: 3 }}>🔒</div>
-                      <div style={{ fontSize: 10, color: 'var(--subtle)', fontWeight: 600 }}>Starter plan</div>
-                    </div>
-                  </div>
-                )}
-                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4, color: 'var(--text)' }}>{title}</div>
-                <div style={{ fontSize: 11, color: 'var(--subtle)', lineHeight: 1.6 }}>{desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA */}
-        {!emailDone ? (
-          <div className="card" style={{ marginBottom: 16, borderColor: 'rgba(94,106,210,0.25)', background: 'var(--surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.2px' }}>Join the beta</div>
-              <div className="badge badge-purple" style={{ fontSize: 10 }}>Private Beta</div>
-            </div>
-            <p style={{ color: 'var(--subtle)', fontSize: 12, lineHeight: 1.7, marginBottom: 16, maxWidth: 440 }}>
-              Drop your email to join the beta. Free, no credit card. You'll get a personal onboarding — not an automated drip.
-            </p>
-            <form onSubmit={handleEmailSubmit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required style={{ flex: 1, minWidth: 200 }} />
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Joining…</> : 'Join the beta →'}
-              </button>
-            </form>
-            <p style={{ fontSize: 11, color: 'var(--subtle)', marginTop: 10 }}>Free · No credit card · Personal onboarding</p>
-          </div>
-        ) : (
-          <div className="card" style={{ marginBottom: 16, borderColor: 'rgba(74,173,82,0.25)' }}>
-            <GaluMascot size={56} mood="celebrate" style={{ marginBottom: 10 }} />
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, letterSpacing: '-0.2px' }}>You're on the list!</div>
-            <p style={{ color: 'var(--subtle)', fontSize: 13, lineHeight: 1.7, marginBottom: 14, maxWidth: 420 }}>
-              We'll reach out to you at <strong style={{ color: 'var(--text)' }}>{email}</strong> personally — usually within a day.
-              In the meantime, your dashboard is ready to explore.
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => onRegistered && onRegistered()} className="btn btn-primary">Open Dashboard →</button>
-            </div>
-          </div>
-        )}
-
-        {/* Badge */}
-        <div className="card" style={{ marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
-          {!emailDone && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(14,14,16,0.88)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderRadius: 'inherit' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>🔒</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>Embeddable Score Badge</div>
-                <div style={{ fontSize: 11, color: 'var(--subtle)' }}>Create a free account to unlock</div>
-              </div>
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Embed your score badge</div>
-              <p style={{ fontSize: 12, color: 'var(--subtle)', marginBottom: 12, maxWidth: 340 }}>Show visitors your site is AI-ready. Updates automatically.</p>
-              <img src={badgeUrl} alt="AI Readiness Score badge" style={{ display: 'block', marginBottom: 12, borderRadius: 6 }} />
-            </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div className="label">HTML snippet</div>
-              <pre style={{ marginBottom: 8, fontSize: 11 }}>{badgeCode}</pre>
-              <button onClick={() => { navigator.clipboard.writeText(badgeCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }) }} className="btn btn-ghost btn-sm">
-                {copied ? '✓ Copied' : 'Copy snippet'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Install snippet */}
-        {emailDone && (
-          <div className="card" style={{ borderColor: 'rgba(94,106,210,0.25)' }}>
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Start monitoring {domain}</div>
-            <p style={{ color: 'var(--subtle)', fontSize: 12, marginBottom: 14 }}>Paste this in your site's &lt;head&gt;. Galuli generates your llms.txt, registers WebMCP, and tracks AI agent visits.</p>
-            <div className="code-block" style={{ marginBottom: 12 }}>
-              {`<script src="${API_BASE}/galuli.js" defer></script>`}
-            </div>
-            <button onClick={() => onRegistered && onRegistered()} className="btn btn-primary">Go to Dashboard →</button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}

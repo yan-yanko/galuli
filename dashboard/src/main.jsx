@@ -2,7 +2,8 @@ import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { LandingPage, ResultsPage } from './Landing.jsx'
+import { LandingPage } from './Landing.jsx'
+import ScanResultsPage from './ScanResultsPage.jsx'
 import { BlogListPage, BlogPostPage } from './Blog.jsx'
 import { AboutPage } from './About.jsx'
 import { RoadmapPage } from './Roadmap.jsx'
@@ -11,9 +12,14 @@ import { AuthModal } from './AuthModal.jsx'
 import { InstallGuidePage } from './InstallGuide.jsx'
 import { PrivacyPage } from './Privacy.jsx'
 import { TermsPage } from './Terms.jsx'
+import LeaderboardPage from './Leaderboard.jsx'
+import ApiDocsPage from './ApiDocs.jsx'
 
 // Simple path-based routing — no react-router needed
 // /dashboard/  → dashboard app
+// /scan/{domain} → scan results page (shareable)
+// /leaderboard → AI readiness leaderboard
+// /developers  → public API docs
 // /             → landing page
 // /blog         → blog list
 // /blog/[slug]  → individual post
@@ -25,7 +31,11 @@ import { TermsPage } from './Terms.jsx'
 const path = window.location.pathname
 
 function Root() {
-  const [scanData, setScanData] = useState(null)
+  const [scanDomain, setScanDomain] = useState(() => {
+    // Check if we're on a /scan/{domain} URL
+    if (path.startsWith('/scan/')) return path.replace('/scan/', '').replace(/\/$/, '')
+    return null
+  })
   const [showAuth, setShowAuth] = useState(() => {
     // Auto-open auth modal if there's a magic link token in URL
     const params = new URLSearchParams(window.location.search)
@@ -42,6 +52,8 @@ function Root() {
     if (path === '/install' || path === '/install/') return { page: 'install' }
     if (path === '/privacy' || path === '/privacy/') return { page: 'privacy' }
     if (path === '/terms' || path === '/terms/') return { page: 'terms' }
+    if (path === '/leaderboard' || path === '/leaderboard/') return { page: 'leaderboard' }
+    if (path === '/developers' || path === '/developers/') return { page: 'developers' }
     return null
   })
 
@@ -89,12 +101,14 @@ function Root() {
         {contentPage.page === 'install' && <InstallGuidePage onNavigate={handleContentNavigate} />}
         {contentPage.page === 'privacy' && <PrivacyPage onNavigate={handleContentNavigate} />}
         {contentPage.page === 'terms' && <TermsPage onNavigate={handleContentNavigate} />}
+        {contentPage.page === 'leaderboard' && <LeaderboardPage onNavigate={handleContentNavigate} />}
+        {contentPage.page === 'developers' && <ApiDocsPage onNavigate={handleContentNavigate} />}
       </>
     )
   }
 
-  // Landing: results page after scan
-  if (scanData) {
+  // Scan results page (shareable URL or post-scan)
+  if (scanDomain) {
     return (
       <>
         {showAuth && (
@@ -104,7 +118,11 @@ function Root() {
             onClose={() => setShowAuth(null)}
           />
         )}
-        <ResultsPage data={scanData} onRegistered={() => setShowAuth('signup')} />
+        <ScanResultsPage
+          domain={scanDomain}
+          onRegistered={() => setShowAuth('signup')}
+          onNavigate={handleContentNavigate}
+        />
       </>
     )
   }
@@ -120,7 +138,10 @@ function Root() {
         />
       )}
       <LandingPage
-        onScanComplete={setScanData}
+        onScanComplete={(domain) => {
+          window.history.pushState({}, '', `/scan/${domain}`)
+          setScanDomain(domain)
+        }}
         onAuthRequired={() => setShowAuth('signup')}
       />
     </>

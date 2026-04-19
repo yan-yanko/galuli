@@ -1,261 +1,176 @@
 """
-AI Readiness Score — 0 to 100.
+AI Readiness Score — shared computation.
 
-Dimensions:
-  1. Content coverage     (25pts) — how many pages are indexed, content quality
-  2. Structure quality    (20pts) — schema.org, headings, semantic HTML detected
-  3. Freshness            (20pts) — how recently the registry was updated
-  4. WebMCP compliance    (20pts) — tools registered, forms exposed
-  5. Output formats       (15pts) — llms.txt present, ai-plugin.json present
+Used by:
+  - app/api/routes/score.py (per-domain endpoint)
+  - app/api/routes/leaderboard.py (batch computation)
 
-Score feeds the embeddable badge and customer dashboard.
+3 dimensions mapped to The Stack framework:
+  1. Entity Establishment  (0-35) — L1: Schema.org, robots.txt, identity
+  2. Content Retrieval     (0-40) — L4: Pages, capabilities, AI comprehension
+  3. Freshness             (0-25) — How current is the data?
 """
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_score(registry: Dict[str, Any], analytics_summary: Optional[Dict] = None) -> Dict[str, Any]:
+def compute_score(registry) -> dict:
     """
-    Takes a registry dict and optional analytics summary.
-    Returns full score breakdown + total.
+    AI Visibility Score (0-100) built on The Stack framework.
+    Accepts a CapabilityRegistry Pydantic model.
     """
-    scores = {}
-    details = {}
+    ai = registry.ai_metadata
+    m = registry.metadata
+    p = registry.pricing
 
-    # ── 1. Content Coverage (25 pts) ──────────────────────────────────────
-    caps = registry.get("capabilities") or []
-    pages = (registry.get("ai_metadata") or {}).get("pages_crawled") or 0
-    conf  = (registry.get("ai_metadata") or {}).get("confidence_score") or 0.0
+    # ── 1. Entity Establishment (0-35) — L1 ─────────────────────────────────
+    entity_pts = 0
+    if ai.schema_org_has_organization:
+        entity_pts += 10
+    if ai.robots_has_robots_txt and not ai.robots_blocks_ai_crawlers:
+        entity_pts += 8
+    elif not ai.robots_has_robots_txt:
+        entity_pts += 4
+    if ai.schema_org_has_faq:
+        entity_pts += 7
+    if m.description and len(m.description) > 80:
+        entity_pts += 5
+    if m.docs_url or p.pricing_page_url:
+        entity_pts += 5
+    entity_score = min(entity_pts, 35)
 
-    cap_score   = min(len(caps) / 5, 1.0) * 10   # up to 10pts for 5+ capabilities
-    page_score  = min(pages / 10, 1.0) * 8        # up to 8pts for 10+ pages
-    conf_score  = conf * 7                          # up to 7pts for confidence
+    # ── 2. Content Retrieval (0-40) — L4 ────────────────────────────────────
+    retrieval_pts = 0
+    pages = ai.pages_crawled
+    cap_count = len(registry.capabilities)
+    conf = ai.confidence_score
 
-    scores["content_coverage"] = round(cap_score + page_score + conf_score)
-    details["content_coverage"] = {
-        "score": scores["content_coverage"],
-        "max": 25,
-        "capabilities_found": len(caps),
-        "pages_crawled": pages,
-        "confidence": round(conf, 2),
-    }
+    if pages >= 10:
+        retrieval_pts += 13
+    elif pages >= 5:
+        retrieval_pts += 9
+    elif pages >= 1:
+        retrieval_pts += 4
 
-    # ── 2. Structure Quality (20 pts) ─────────────────────────────────────
-    meta = registry.get("metadata") or {}
-    intg = registry.get("integration") or {}
-    pricing = registry.get("pricing") or {}
+    if cap_count >= 5:
+        retrieval_pts += 13
+    elif cap_count >= 2:
+        retrieval_pts += 8
+    elif cap_count >= 1:
+        retrieval_pts += 4
 
-    structure_pts = 0
-    structure_checks = {}
+    if conf >= 0.7:
+        retrieval_pts += 10
+    elif conf >= 0.4:
+        retrieval_pts += 6
+    elif conf > 0:
+        retrieval_pts += 3
 
-    if meta.get("description"):
-        structure_pts += 3; structure_checks["description"] = True
-    if meta.get("category") and meta.get("category") != "other":
-        structure_pts += 2; structure_checks["category"] = True
-    if intg.get("api_base_url"):
-        structure_pts += 4; structure_checks["api_base_url"] = True
-    if intg.get("auth_methods"):
-        structure_pts += 3; structure_checks["auth_methods"] = True
-    if pricing.get("tiers") and len(pricing.get("tiers", [])) > 0:
-        structure_pts += 4; structure_checks["pricing_tiers"] = True
-    if intg.get("sdks"):
-        structure_pts += 2; structure_checks["sdks"] = True
-    if meta.get("docs_url"):
-        structure_pts += 2; structure_checks["docs_url"] = True
+    if ai.source == "push":
+        retrieval_pts += 4
+    retrieval_score = min(retrieval_pts, 40)
 
-    scores["structure_quality"] = min(structure_pts, 20)
-    details["structure_quality"] = {
-        "score": scores["structure_quality"],
-        "max": 20,
-        "checks": structure_checks,
-    }
-
-    # ── 3. Freshness (20 pts) ─────────────────────────────────────────────
-    last_updated_str = (registry.get("ai_metadata") or {}).get("last_updated") or registry.get("last_updated")
-    freshness_pts = 0
-    age_days = None
-
-    if last_updated_str:
+    # ── 3. Freshness (0-25) ─────────────────────────────────────────────────
+    fresh_pts = 0
+    last_updated = ai.last_updated
+    if last_updated:
         try:
-            if isinstance(last_updated_str, str):
-                lu = datetime.fromisoformat(last_updated_str.replace("Z", "+00:00").replace("+00:00", ""))
-            else:
-                lu = last_updated_str
-            age_days = (datetime.utcnow() - lu).days
+            if isinstance(last_updated, str):
+                last_updated = datetime.fromisoformat(last_updated.replace("Z", ""))
+            age_days = (datetime.utcnow() - last_updated).days
             if age_days <= 1:
-                freshness_pts = 20
+                fresh_pts = 25
             elif age_days <= 7:
-                freshness_pts = 16
+                fresh_pts = 20
             elif age_days <= 30:
-                freshness_pts = 10
+                fresh_pts = 13
             elif age_days <= 90:
-                freshness_pts = 5
+                fresh_pts = 7
             else:
-                freshness_pts = 1
+                fresh_pts = 2
         except Exception:
-            freshness_pts = 0
+            fresh_pts = 0
+    freshness_score = min(fresh_pts, 25)
 
-    scores["freshness"] = freshness_pts
-    details["freshness"] = {
-        "score": freshness_pts,
-        "max": 20,
-        "age_days": age_days,
-        "last_updated": str(last_updated_str) if last_updated_str else None,
-    }
+    # ── Total ────────────────────────────────────────────────────────────────
+    total = entity_score + retrieval_score + freshness_score
 
-    # ── 4. WebMCP Compliance (20 pts) ────────────────────────────────────
-    ai_meta = registry.get("ai_metadata") or {}
-    webmcp_tools   = ai_meta.get("webmcp_tools_count", 0)
-    webmcp_enabled = ai_meta.get("webmcp_enabled", False)
-    forms_exposed  = ai_meta.get("forms_exposed", 0)
-
-    webmcp_pts = 0
-    if webmcp_enabled:
-        webmcp_pts += 8
-    if webmcp_tools > 0:
-        webmcp_pts += min(webmcp_tools * 3, 9)   # 3pts per tool, up to 9
-    if forms_exposed > 0:
-        webmcp_pts += min(forms_exposed * 1, 3)  # 1pt per form, up to 3
-
-    scores["webmcp_compliance"] = min(webmcp_pts, 20)
-    details["webmcp_compliance"] = {
-        "score": scores["webmcp_compliance"],
-        "max": 20,
-        "webmcp_enabled": webmcp_enabled,
-        "tools_registered": webmcp_tools,
-        "forms_exposed": forms_exposed,
-    }
-
-    # ── 5. Output Formats (15 pts) ────────────────────────────────────────
-    format_pts = 0
-    format_checks = {}
-
-    ai_urls = ai_meta
-    if ai_urls.get("llms_txt_url"):
-        format_pts += 5; format_checks["llms_txt"] = True
-    if ai_urls.get("ai_plugin_url"):
-        format_pts += 5; format_checks["ai_plugin_json"] = True
-    if ai_urls.get("registry_url"):
-        format_pts += 5; format_checks["json_registry"] = True
-
-    scores["output_formats"] = min(format_pts, 15)
-    details["output_formats"] = {
-        "score": scores["output_formats"],
-        "max": 15,
-        "checks": format_checks,
-    }
-
-    # ── Total ─────────────────────────────────────────────────────────────
-    total = sum(scores.values())
-    grade = _grade(total)
+    if total >= 85:
+        grade, label = "A", "Strong AI Visibility"
+    elif total >= 70:
+        grade, label = "B", "Good AI Visibility"
+    elif total >= 55:
+        grade, label = "C", "Partial AI Visibility"
+    elif total >= 40:
+        grade, label = "D", "Weak AI Visibility"
+    else:
+        grade, label = "F", "Not Visible to AI"
 
     return {
-        "domain": registry.get("domain", ""),
         "total": total,
-        "max": 100,
         "grade": grade,
-        "label": _label(grade),
-        "color": _color(grade),
-        "dimensions": details,
+        "label": label,
+        "dimensions": {
+            "Entity Establishment": {
+                "score": entity_score,
+                "max": 35,
+                "layer": "L1",
+                "description": "Are you a resolved entity? Schema.org, robots.txt, content identity.",
+            },
+            "Content Retrieval": {
+                "score": retrieval_score,
+                "max": 40,
+                "layer": "L4",
+                "description": "Can your content be retrieved and cited? Coverage, density, AI comprehension.",
+            },
+            "Freshness": {
+                "score": freshness_score,
+                "max": 25,
+                "layer": "cross-layer",
+                "description": "76.4% of AI-cited pages were updated within 30 days.",
+            },
+        },
+        "suggestions": _suggestions(registry, entity_score, retrieval_score),
+        "confidence": round(conf, 2),
+        "pages_crawled": pages,
+        "source": ai.source,
         "calculated_at": datetime.utcnow().isoformat(),
     }
 
 
-def _grade(total: int) -> str:
-    if total >= 90: return "A+"
-    if total >= 80: return "A"
-    if total >= 70: return "B"
-    if total >= 55: return "C"
-    if total >= 40: return "D"
-    return "F"
+def _suggestions(registry, entity_score: int, retrieval_score: int) -> list:
+    """Prioritized fixes based on The Stack framework."""
+    tips = []
+    ai = registry.ai_metadata
+    m = registry.metadata
+    p = registry.pricing
 
+    if ai.robots_blocks_ai_crawlers:
+        blocked = ", ".join(ai.robots_blocked_crawlers[:3])
+        tips.insert(0, f"Critical: robots.txt is blocking AI crawlers ({blocked}) — they cannot index or cite your site")
 
-def _label(grade: str) -> str:
-    return {
-        "A+": "AI-Ready",
-        "A":  "AI-Ready",
-        "B":  "Mostly Ready",
-        "C":  "Partially Ready",
-        "D":  "Needs Work",
-        "F":  "Not AI-Ready",
-    }.get(grade, "Unknown")
+    if not ai.schema_org_has_organization:
+        tips.append("Add Organization schema.org JSON-LD — AI engines use this for entity resolution before retrieval")
 
+    if not ai.schema_org_has_faq:
+        tips.append("Add FAQPage schema.org markup — FAQ content is retrieved 3x more often by AI systems")
 
-def _color(grade: str) -> str:
-    return {
-        "A+": "#10b981",
-        "A":  "#10b981",
-        "B":  "#3b82f6",
-        "C":  "#f59e0b",
-        "D":  "#f97316",
-        "F":  "#ef4444",
-    }.get(grade, "#6b7280")
+    if not m.description or len(m.description) <= 80:
+        tips.append("Add a detailed description to your site — AI needs a clear entity identity to describe and recommend you")
 
+    if ai.pages_crawled < 5:
+        tips.append("Low page coverage — check robots.txt allows GPTBot and ClaudeBot, then re-scan")
 
-def generate_suggestions(score_result: Dict[str, Any]) -> list:
-    """Returns a prioritized list of improvement suggestions."""
-    suggestions = []
-    dims = score_result.get("dimensions", {})
+    cap_count = len(registry.capabilities)
+    if cap_count < 2:
+        tips.append("Add a clear Features or How It Works page — structured capability content is cited more reliably")
 
-    wm = dims.get("webmcp_compliance", {})
-    if not wm.get("webmcp_enabled"):
-        suggestions.append({
-            "priority": "high",
-            "dimension": "WebMCP",
-            "issue": "WebMCP not detected",
-            "fix": "Our snippet is installed but WebMCP isn't supported in this browser yet. It will activate automatically when Chrome ships WebMCP to stable.",
-        })
-    elif wm.get("tools_registered", 0) == 0:
-        suggestions.append({
-            "priority": "high",
-            "dimension": "WebMCP",
-            "issue": "No WebMCP tools registered",
-            "fix": "We couldn't detect any interactive forms or CTAs to expose as tools. Add structured forms with clear labels.",
-        })
+    if not m.docs_url and not p.pricing_page_url:
+        tips.append("Add a /pricing or /docs page — canonical reference URLs help AI engines cite you accurately")
 
-    cc = dims.get("content_coverage", {})
-    if cc.get("capabilities_found", 0) < 3:
-        suggestions.append({
-            "priority": "high",
-            "dimension": "Content",
-            "issue": "Few capabilities detected",
-            "fix": "Add a dedicated Features or How It Works page with clear headings for each capability.",
-        })
-    if cc.get("pages_crawled", 0) < 5:
-        suggestions.append({
-            "priority": "medium",
-            "dimension": "Content",
-            "issue": "Low page count indexed",
-            "fix": "Make sure your site isn't blocking crawlers. Check robots.txt allows GPTBot and ClaudeBot.",
-        })
+    if not tips:
+        tips.append("Strong entity establishment. Run the Entity Check tool for a live directory audit.")
 
-    sq = dims.get("structure_quality", {})
-    checks = sq.get("checks", {})
-    if not checks.get("pricing_tiers"):
-        suggestions.append({
-            "priority": "medium",
-            "dimension": "Structure",
-            "issue": "No pricing tiers detected",
-            "fix": "Add a /pricing page with clearly labeled plan names and prices.",
-        })
-    if not checks.get("api_base_url"):
-        suggestions.append({
-            "priority": "low",
-            "dimension": "Structure",
-            "issue": "No API base URL found",
-            "fix": "Add your API base URL to your docs page. AI agents use this to understand how to integrate.",
-        })
-
-    fr = dims.get("freshness", {})
-    if (fr.get("age_days") or 999) > 30:
-        suggestions.append({
-            "priority": "medium",
-            "dimension": "Freshness",
-            "issue": "Registry is stale",
-            "fix": "Trigger a manual refresh from your dashboard, or check that auto-refresh is running.",
-        })
-
-    return suggestions
+    return tips[:4]

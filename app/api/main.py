@@ -98,12 +98,13 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key", "X-Galuli-Key"],
 )
 
-from app.api.routes import ingest, registry, admin, tenants, push, analytics, billing, content_doctor, score, citations, entity
+from app.api.routes import ingest, registry, admin, tenants, push, analytics, billing, content_doctor, score, citations, entity, leaderboard
 
 app.include_router(ingest.router,         prefix="/api/v1",                  tags=["Ingestion"])
 app.include_router(push.router,           prefix="/api/v1",                  tags=["Snippet / Push"])
 app.include_router(score.router,          prefix="/api/v1/score",            tags=["Score & Badge"])
 app.include_router(entity.router,         prefix="/api/v1/entity",           tags=["Entity Check"])
+app.include_router(leaderboard.router,    prefix="/api/v1",                  tags=["Leaderboard"])
 app.include_router(registry.router,       prefix="/registry",                tags=["Registry"])
 app.include_router(admin.router,          prefix="/api/v1/admin",            tags=["Admin"])
 app.include_router(tenants.router,        prefix="/api/v1/tenants",          tags=["Tenants"])

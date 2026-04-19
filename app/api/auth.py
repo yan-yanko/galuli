@@ -46,6 +46,10 @@ PUBLIC_PREFIXES = (
     "/api/v1/geo/",     # per-LLM citation readiness — read-only
     "/api/v1/entity/",  # entity establishment check — public, no crawl needed
     "/api/v1/jobs/",    # job polling — public (IDs are random UUIDs)
+    "/api/v1/leaderboard",  # public leaderboard
+    "/scan",            # scan results page (SPA)
+    "/leaderboard",     # leaderboard page (SPA)
+    "/developers",      # API docs page (SPA)
 )
 # Self-service signup + auth + Stripe webhook: always public
 PUBLIC_POST_EXACT = {

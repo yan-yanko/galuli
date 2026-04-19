@@ -1,8 +1,8 @@
 """
 Score routes — AI Readiness Score + embeddable SVG badge.
 
-GET /api/v1/score/{domain}         ← full score data (JSON)
-GET /api/v1/score/{domain}/badge   ← embeddable SVG badge
+GET /api/v1/score/{domain}         <- full score data (JSON)
+GET /api/v1/score/{domain}/badge   <- embeddable SVG badge
 """
 import logging
 from fastapi import APIRouter, HTTPException, Request
@@ -10,195 +10,11 @@ from fastapi.responses import Response
 
 from app.api.limiter import limiter
 from app.services.storage import StorageService
+from app.services.score import compute_score
 from app.services import cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-def _compute_score(registry) -> dict:
-    """
-    AI Visibility Score (0-100) built on The Stack framework.
-
-    3 dimensions mapped to The Stack (4 layers, 3 mechanisms):
-      1. Entity Establishment  (0-35) — L1: Are you a resolved entity?
-                                        Schema.org, robots.txt, Wikidata proxy, description depth
-      2. Content Retrieval     (0-40) — L4: Can your content be retrieved and cited?
-                                        Pages crawled, capability density, AI comprehension score
-      3. Freshness             (0-25) — How current is your data?
-
-    Framework: https://www.linkedin.com/pulse/how-ai-visibility-actually-works
-    Research across 88 sources. Entity resolution happens BEFORE retrieval.
-    """
-    ai = registry.ai_metadata
-    m  = registry.metadata
-    p  = registry.pricing
-
-    # ── 1. Entity Establishment (0-35) — L1 ──────────────────────────────────
-    # K mechanism: Schema.org Organization (+10), robots.txt AI access (+8),
-    # FAQPage schema (+7), clear description (+5), reference URLs (+5)
-    entity_pts = 0
-
-    if ai.schema_org_has_organization:
-        entity_pts += 10   # AI can resolve who you are
-    if ai.robots_has_robots_txt and not ai.robots_blocks_ai_crawlers:
-        entity_pts += 8    # AI crawlers have verified access
-    elif not ai.robots_has_robots_txt:
-        entity_pts += 4    # permissive by default, unverified
-    if ai.schema_org_has_faq:
-        entity_pts += 7    # answer-shaped content = entity has expert knowledge
-    if m.description and len(m.description) > 80:
-        entity_pts += 5    # entity has a clear, detailed identity
-    if m.docs_url or p.pricing_page_url:
-        entity_pts += 5    # entity has canonical reference points AI can cite
-
-    entity_score = min(entity_pts, 35)
-
-    # ── 2. Content Retrieval (0-40) — L4 ─────────────────────────────────────
-    # R mechanism: Retrieval surface (pages), content density (capabilities),
-    # AI comprehension score (confidence), monitoring depth (push vs crawl)
-    retrieval_pts = 0
-    pages = ai.pages_crawled
-    cap_count = len(registry.capabilities)
-    conf = ai.confidence_score
-
-    # Pages crawled = retrieval surface area (0-13pts)
-    if pages >= 10:
-        retrieval_pts += 13
-    elif pages >= 5:
-        retrieval_pts += 9
-    elif pages >= 1:
-        retrieval_pts += 4
-
-    # Capability density = structured, answer-shaped content (0-13pts)
-    if cap_count >= 5:
-        retrieval_pts += 13
-    elif cap_count >= 2:
-        retrieval_pts += 8
-    elif cap_count >= 1:
-        retrieval_pts += 4
-
-    # AI comprehension score = how well LLMs understand the content (0-10pts)
-    if conf >= 0.7:
-        retrieval_pts += 10
-    elif conf >= 0.4:
-        retrieval_pts += 6
-    elif conf > 0:
-        retrieval_pts += 3
-
-    # Real-time monitoring via snippet = always-fresh retrieval surface (0-4pts)
-    if ai.source == "push":
-        retrieval_pts += 4
-
-    retrieval_score = min(retrieval_pts, 40)
-
-    # ── 3. Freshness (0-25) ───────────────────────────────────────────────────
-    # Research: 76.4% of pages cited by AI were updated within 30 days
-    from datetime import datetime
-    fresh_pts = 0
-    last_updated = ai.last_updated
-    if last_updated:
-        try:
-            if isinstance(last_updated, str):
-                last_updated = datetime.fromisoformat(last_updated.replace("Z", ""))
-            age_days = (datetime.utcnow() - last_updated).days
-            if age_days <= 1:
-                fresh_pts = 25
-            elif age_days <= 7:
-                fresh_pts = 20
-            elif age_days <= 30:
-                fresh_pts = 13
-            elif age_days <= 90:
-                fresh_pts = 7
-            else:
-                fresh_pts = 2
-        except Exception:
-            fresh_pts = 0
-
-    freshness_score = min(fresh_pts, 25)
-
-    # ── Total ─────────────────────────────────────────────────────────────────
-    total = entity_score + retrieval_score + freshness_score
-
-    if total >= 85:
-        grade, label = "A", "Strong AI Visibility"
-    elif total >= 70:
-        grade, label = "B", "Good AI Visibility"
-    elif total >= 55:
-        grade, label = "C", "Partial AI Visibility"
-    elif total >= 40:
-        grade, label = "D", "Weak AI Visibility"
-    else:
-        grade, label = "F", "Not Visible to AI"
-
-    return {
-        "total": total,
-        "grade": grade,
-        "label": label,
-        "dimensions": {
-            "Entity Establishment": {
-                "score": entity_score,
-                "max": 35,
-                "layer": "L1",
-                "description": "Are you a resolved entity? Schema.org, robots.txt, content identity.",
-            },
-            "Content Retrieval": {
-                "score": retrieval_score,
-                "max": 40,
-                "layer": "L4",
-                "description": "Can your content be retrieved and cited? Coverage, density, AI comprehension.",
-            },
-            "Freshness": {
-                "score": freshness_score,
-                "max": 25,
-                "layer": "cross-layer",
-                "description": "76.4% of AI-cited pages were updated within 30 days.",
-            },
-        },
-        "suggestions": _suggestions(registry, entity_score, retrieval_score),
-        "confidence": round(conf, 2),
-        "pages_crawled": pages,
-        "source": ai.source,
-        "calculated_at": datetime.utcnow().isoformat(),
-    }
-
-
-def _suggestions(registry, entity_score: int, retrieval_score: int) -> list:
-    """Prioritized fixes based on The Stack framework."""
-    tips = []
-    ai = registry.ai_metadata
-    m  = registry.metadata
-    p  = registry.pricing
-
-    # L1: Entity Establishment fixes first (foundation layer — everything builds on it)
-    if ai.robots_blocks_ai_crawlers:
-        blocked = ", ".join(ai.robots_blocked_crawlers[:3])
-        tips.insert(0, f"Critical: robots.txt is blocking AI crawlers ({blocked}) — they cannot index or cite your site")
-
-    if not ai.schema_org_has_organization:
-        tips.append("Add Organization schema.org JSON-LD — AI engines use this for entity resolution before retrieval")
-
-    if not ai.schema_org_has_faq:
-        tips.append("Add FAQPage schema.org markup — FAQ content is retrieved 3x more often by AI systems")
-
-    if not m.description or len(m.description) <= 80:
-        tips.append("Add a detailed description to your site — AI needs a clear entity identity to describe and recommend you")
-
-    # L4: Content Retrieval fixes
-    if ai.pages_crawled < 5:
-        tips.append("Low page coverage — check robots.txt allows GPTBot and ClaudeBot, then re-scan")
-
-    cap_count = len(registry.capabilities)
-    if cap_count < 2:
-        tips.append("Add a clear Features or How It Works page — structured capability content is cited more reliably")
-
-    if not m.docs_url and not p.pricing_page_url:
-        tips.append("Add a /pricing or /docs page — canonical reference URLs help AI engines cite you accurately")
-
-    if not tips:
-        tips.append("Strong entity establishment. Run the Entity Check tool for a live directory audit.")
-
-    return tips[:4]
 
 
 def _grade_color(grade: str) -> tuple:
@@ -296,7 +112,7 @@ async def get_score(request: Request, domain: str):
                 "hint": "POST /api/v1/ingest with the site URL to scan it first",
             },
         )
-    score = _compute_score(registry)
+    score = compute_score(registry)
     result = {"domain": domain, **score}
     cache.set(f"score:{domain}", result)
     return result
@@ -315,7 +131,7 @@ async def get_suggestions(request: Request, domain: str):
     registry = storage.get_registry(domain)
     if not registry:
         raise HTTPException(status_code=404, detail=f"No registry for '{domain}'")
-    score = _compute_score(registry)
+    score = compute_score(registry)
     return {
         "domain": domain,
         "score": score["total"],
@@ -347,7 +163,7 @@ async def get_badge(request: Request, domain: str):
     if not registry:
         raise HTTPException(status_code=404, detail=f"No registry for '{domain}'")
 
-    score = _compute_score(registry)
+    score = compute_score(registry)
     svg = _make_badge_svg(domain, score["total"], score["grade"], score["label"])
 
     response = Response(
