@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from app.api.limiter import limiter
 from app.services.storage import StorageService
-from app.services.score import calculate_score
+from app.services.score import compute_score
 from app.services import cache
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ async def push_page(request: Request, payload: PushPayload, background_tasks: Ba
     if last_hash == page_hash:
         # Content unchanged — return current score without re-processing
         registry = storage.get_registry(domain)
-        score = calculate_score(registry.model_dump() if registry else {}) if registry else None
+        score = compute_score(registry) if registry else None
         return PushResponse(
             status="skipped",
             domain=domain,
@@ -129,7 +129,7 @@ async def push_page(request: Request, payload: PushPayload, background_tasks: Ba
 
     # Return current score while pipeline runs in background
     registry = storage.get_registry(domain)
-    score = calculate_score(registry.model_dump() if registry else {}) if registry else None
+    score = compute_score(registry) if registry else None
 
     return PushResponse(
         status="accepted",
